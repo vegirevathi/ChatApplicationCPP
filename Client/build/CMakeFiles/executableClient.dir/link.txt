@@ -1,1 +1,0 @@
-/bin/x86_64-linux-gnu-g++-9  -g   CMakeFiles/executableClient.dir/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Client/controller/clientController.cpp.o CMakeFiles/executableClient.dir/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Client/model/client.cpp.o  -o executableClient  -pthread 

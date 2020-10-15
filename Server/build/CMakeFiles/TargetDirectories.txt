@@ -1,3 +1,0 @@
-/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Server/build/CMakeFiles/rebuild_cache.dir
-/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Server/build/CMakeFiles/edit_cache.dir
-/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Server/build/CMakeFiles/executableServer.dir
