@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Server/controller/serverController.cpp
+../controller/serverController.h
+/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Server/controller/serverController.h
+
+/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Server/controller/serverController.h
+../model/server.h
+/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Server/model/server.h
+thread
+-
+
+/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Server/model/server.cpp
+server.h
+/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Server/model/server.h
+
+/home/sudhanshu/Documents/cpp_programming/ChatAppInCpp/ChatApplicationCPP/Server/model/server.h
+unistd.h
+-
+sys/socket.h
+-
+netinet/in.h
+-
+string.h
+-
+iostream
+-
+ctime
+-
+signal.h
+-
+
