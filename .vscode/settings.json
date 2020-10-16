@@ -1,0 +1,10 @@
+{
+    "cmake.configureOnOpen": false,
+    "files.associations": {
+        "optional": "cpp",
+        "new": "cpp",
+        "streambuf": "cpp",
+        "functional": "cpp",
+        "typeinfo": "cpp"
+    }
+}
