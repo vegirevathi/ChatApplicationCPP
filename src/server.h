@@ -1,6 +1,8 @@
 #ifndef LIST
 #define LIST
 
+#include <iostream>
+
 typedef struct ClientNode
 {
     int data;

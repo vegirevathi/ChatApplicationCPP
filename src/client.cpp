@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -16,7 +17,6 @@ volatile sig_atomic_t flag = 0;
 int sockfd = 0;
 char nickname[LENGTH_NAME] = {};
 char password[LENGTH_PASSWORD] = {};
-
 
 void catch_ctrl_c_and_exit(int sig)
 {
@@ -86,7 +86,7 @@ void client_registration()
     }
 }
 
-void client_login() 
+void client_login()
 {
     printf("Please enter your name: ");
     if (fgets(nickname, LENGTH_NAME, stdin) != NULL)
@@ -97,14 +97,38 @@ void client_login()
     {
         printf("\nName must be more than one and less than thirty characters.\n");
         exit(EXIT_FAILURE);
-    }}
+    }
+}
+
+void get_in_choice()
+{
+    int choice = 0;
+    while (choice != 1)
+    {
+        std::cout << "\nEnter your choice\n1. Login\n2.Sign up\n3.Exit";
+        std::cin >> choice;
+        switch (choice)
+        {
+        case 1:
+            client_login();
+            break;
+        case 2:
+            client_registration();
+            break;
+        case 3:
+            exit(EXIT_SUCCESS);
+            break;
+        default:
+            break;
+        }
+    }
+}
 
 int main()
 {
     signal(SIGINT, catch_ctrl_c_and_exit);
 
-    client_registration();
-
+    get_in_choice();
     // Create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1)
