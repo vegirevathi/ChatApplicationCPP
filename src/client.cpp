@@ -16,6 +16,7 @@
 volatile sig_atomic_t flag = 0;
 int sockfd = 0;
 char name[32];
+char password[10];
 
 void catch_ctrl_c_and_exit(int sig) {
     flag = 1;
@@ -88,32 +89,87 @@ void Client::connectingToServer(int sock)
 void Client::clientLogin(int sockfd)
 {
 	printf("Please enter your name: ");
-	fgets(name, 32, stdin);
+	cin >> name;
 	str_trim_lf(name, strlen(name));
 
 
 	if (strlen(name) > 32 || strlen(name) < 2){
 		printf("Name must be less than 30 and more than 2 characters.\n");
-		exit(EXIT_FAILURE);
+		catch_ctrl_c_and_exit(2);
 	}
 
-	send(sockfd, name, LENGTH_NAME, 0);
+	printf("Please enter your password: ");
+	cin >> password;
+	str_trim_lf(password, strlen(password));
 
-	printf("=== WELCOME TO THE CHATROOM ===\n");
+	if (strcmp(password, "123456") != 0) {
+		printf("Wrong password\n");
+		catch_ctrl_c_and_exit(2);
+    } 
+	
+	cout << "Logged in successfully" << endl;
+
+	send(sockfd, name, LENGTH_NAME, 0);
 
 	pthread_t send_msg_thread;
   	if(pthread_create(&send_msg_thread, NULL, send_msg_handler, NULL) != 0){
 		printf("ERROR: pthread\n");
-		exit(EXIT_FAILURE);
 	}
 
 	pthread_t recv_msg_thread;
   	if(pthread_create(&recv_msg_thread, NULL, recv_msg_handler, NULL) != 0){
 		printf("ERROR: pthread\n");
-		exit(EXIT_FAILURE);
 	}
 }
 
+void Client::clientRegister(int sockfd)
+{
+	cout << "Please enter your name: " << endl;
+	cin >> name;
+	str_trim_lf(name, strlen(name));
+
+
+	if (strlen(name) > 32 || strlen(name) < 2){
+		printf("Name must be less than 30 and more than 2 characters.\n");
+		catch_ctrl_c_and_exit(2);
+	}
+
+	cout << "Create your password: " << endl;
+	cin >> password;
+	str_trim_lf(password, strlen(password));
+
+
+	if (strlen(password) > 10 || strlen(password) < 5){
+		printf("Password must be less than 10 and more than 5 characters.\n");
+		catch_ctrl_c_and_exit(2);
+	}
+	printf("Registered successfully, exit the terminal to start login");
+	catch_ctrl_c_and_exit(2);
+}
+
+void Client::clientSelection()
+{
+	printf("=== WELCOME TO THE CHATROOM ===\n");
+
+	cout << "Enter 1 to login" << endl;
+	cout << "Enter 2 to register" << endl;
+
+	int choice;
+	cout << "Enter your choice " << endl;
+	cin >> choice;
+	cout << endl;
+	switch(choice) {
+		case 1: 
+			clientLogin(sockfd);
+			break;
+		case 2:
+			clientRegister(sockfd);
+			break;
+		default:
+			cout << "Invalid option" << endl;
+            break;
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -122,7 +178,7 @@ int main(int argc, char **argv)
 	Client client;
 	sockfd = client.creatingSocket();
 	client.connectingToServer(sockfd);
-	client.clientLogin(sockfd);
+	client.clientSelection();
 
 	while (1){
 		if(flag){
