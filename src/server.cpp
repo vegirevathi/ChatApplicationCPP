@@ -8,11 +8,14 @@
 #include "clientsData.h"
 #include "server.h"
 
+#include <list>
+
 #define MAX_CLIENTS 100
 #define BUFFER_SZ 2048
 
 static unsigned int cli_count = 0;
 static int uid = 10;
+static list<char *> clientNames;
 
 /* Send message to all clients except sender */
 void send_message(char *s, int uid)
@@ -37,8 +40,31 @@ void send_message(char *s, int uid)
     pthread_mutex_unlock(&clients_mutex);
 }
 
+bool check_name(char *name)
+{
+    for (char *var : clientNames)
+        if (strcmp(name, var) == 0)
+            return true;
+    return false;
+}
+
 void register_client(int sockfd)
 {
+    char name[32];
+    cout << "Registratiion" << endl;
+    if (recv(sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1)
+    {
+        printf("Didn't enter the name.\n");
+    }
+    if (check_name(name))
+    {
+        write(sockfd, "Client Exists", strlen("Client Exists"));
+    }
+    else
+    {
+        clientNames.push_back(name);
+        write(sockfd, "Registered Successful", strlen("Registered Successful"));
+    }
 }
 
 void login_client(int sockfd)
@@ -68,12 +94,32 @@ void *handle_client(void *arg)
     char buff_out[BUFFER_SZ];
     char name[32];
     int leave_flag = 0;
+    // char c[1];
 
     cli_count++;
     client_t *cli = (client_t *)arg;
+    // while (c != "2")
+    // {
+    //     if (recv(cli->sockfd, c, 1, 0) <= 0)
+    //     {
+    //         printf("Invalid.\n");
+    //     }
 
+    //     if (strcmp(c, "1") == 0)
+    //     {
+    //         register_client(cli->sockfd);
+    //         // cout << "came here";
+    //         // for (char *var : clientNames)
+    //         //     cout << var << endl;
+    //         // leave_flag = 1;
+    //     }
+    // }
+
+    // if (strcmp(c, "2") == 0)
+    // {
+    // }
     // Name
-    if (recv(cli->sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1)
+    if (recv(cli->sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1 || leave_flag == 1)
     {
         printf("Didn't enter the name.\n");
         leave_flag = 1;

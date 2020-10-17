@@ -143,27 +143,34 @@ void Client::clientLogin(int sockfd)
 
 void Client::clientRegister(int sockfd)
 {
+    send(sockfd, "1", 1, 0);
+
     cout << "Please enter your name: " << endl;
     cin >> name;
     str_trim_lf(name, strlen(name));
 
-    if (strlen(name) > 32 || strlen(name) < 2)
-    {
-        printf("Name must be less than 30 and more than 2 characters.\n");
-        catch_ctrl_c_and_exit(2);
-    }
+    // if (strlen(name) > 32 || strlen(name) < 2)
+    // {
+    //     printf("Name must be less than 30 and more than 2 characters.\n");
+    //     catch_ctrl_c_and_exit(2);
+    // }
 
-    cout << "Create your password: " << endl;
-    cin >> password;
-    str_trim_lf(password, strlen(password));
+    // cout << "Create your password: " << endl;
+    // cin >> password;
+    // str_trim_lf(password, strlen(password));
 
-    if (strlen(password) > 10 || strlen(password) < 5)
-    {
-        printf("Password must be less than 10 and more than 5 characters.\n");
-        catch_ctrl_c_and_exit(2);
-    }
+    // if (strlen(password) > 10 || strlen(password) < 5)
+    // {
+    //     printf("Password must be less than 10 and more than 5 characters.\n");
+    //     catch_ctrl_c_and_exit(2);
+    // }
     printf("Registered successfully, exit the terminal to start login");
-    catch_ctrl_c_and_exit(2);
+
+    send(sockfd, name, LENGTH_NAME, 0);
+    if (strcmp(name, "exit") == 0)
+        catch_ctrl_c_and_exit(2);
+    else
+        this->clientRegister(sockfd);
 }
 
 void Client::clientSelection()

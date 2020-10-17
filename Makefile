@@ -1,4 +1,4 @@
-CC=g++
+CC=c++
 CFLAGS=-O3 -Wall
 LIBS=-pthread
 SRC=src
