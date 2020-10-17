@@ -2,7 +2,26 @@
 #include <string.h>
 #include "string.h"
 
-void str_overwrite_stdout()
+// void str_overwrite_stdout()
+// {
+//   printf("\r%s", "> ");
+//   fflush(stdout);
+// }
+
+// void str_trim_lf(char *arr, int length)
+// {
+//   int i;
+//   for (i = 0; i < length; i++)
+//   { // trim \n
+//     if (arr[i] == '\n')
+//     {
+//       arr[i] = '\0';
+//       break;
+//     }
+//   }
+// }
+
+void sos()
 {
   printf("\r%s", "> ");
   fflush(stdout);

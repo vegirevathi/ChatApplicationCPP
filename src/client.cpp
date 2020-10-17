@@ -31,7 +31,7 @@ void *send_msg_handler(void *arg)
 
     while (1)
     {
-        str_overwrite_stdout();
+        sos();
         fgets(message, LENGTH_MSG, stdin);
         str_trim_lf(message, LENGTH_MSG);
 
@@ -57,7 +57,7 @@ void *recv_msg_handler(void *arg)
         if (receive > 0)
         {
             printf("%s", message);
-            str_overwrite_stdout();
+            sos();
         }
         else if (receive == 0)
         {
@@ -143,42 +143,44 @@ void Client::clientLogin(int sockfd)
 
 void Client::clientRegister(int sockfd)
 {
+    char message[50];
     send(sockfd, "1", 1, 0);
 
     cout << "Please enter your name: " << endl;
     cin >> name;
     str_trim_lf(name, strlen(name));
 
-    // if (strlen(name) > 32 || strlen(name) < 2)
-    // {
-    //     printf("Name must be less than 30 and more than 2 characters.\n");
-    //     catch_ctrl_c_and_exit(2);
-    // }
+    if (strlen(name) > 32 || strlen(name) < 2)
+    {
+        printf("Name must be less than 30 and more than 2 characters.\n");
+        catch_ctrl_c_and_exit(2);
+    }
 
-    // cout << "Create your password: " << endl;
-    // cin >> password;
-    // str_trim_lf(password, strlen(password));
+    cout << "Create your password: " << endl;
+    cin >> password;
+    str_trim_lf(password, strlen(password));
 
-    // if (strlen(password) > 10 || strlen(password) < 5)
-    // {
-    //     printf("Password must be less than 10 and more than 5 characters.\n");
-    //     catch_ctrl_c_and_exit(2);
-    // }
-    printf("Registered successfully, exit the terminal to start login");
+    if (strlen(password) > 10 || strlen(password) < 5)
+    {
+        printf("Password must be less than 10 and more than 5 characters.\n");
+        catch_ctrl_c_and_exit(2);
+    }
 
     send(sockfd, name, LENGTH_NAME, 0);
-    if (strcmp(name, "exit") == 0)
-        catch_ctrl_c_and_exit(2);
-    else
-        this->clientRegister(sockfd);
+    recv(sockfd, message, 50, 0);
+    if (strcmp(message, "Client Already Exists") == 0)
+        cout << "Cant Register Client as already exists";
+    else if (strcmp(message, "Client Registered Successfully!!!") == 0)
+        cout << message;
+    catch_ctrl_c_and_exit(2);
 }
 
 void Client::clientSelection()
 {
     printf("=== WELCOME TO THE CHATROOM ===\n");
 
-    cout << "Enter 1 to login" << endl;
-    cout << "Enter 2 to register" << endl;
+    cout << "Enter 1 to register" << endl;
+    cout << "Enter 2 to login" << endl;
 
     int choice;
     cout << "Enter your choice " << endl;
@@ -187,10 +189,10 @@ void Client::clientSelection()
     switch (choice)
     {
     case 1:
-        clientLogin(sockfd);
+        clientRegister(sockfd);
         break;
     case 2:
-        clientRegister(sockfd);
+        clientLogin(sockfd);
         break;
     default:
         cout << "Invalid option" << endl;

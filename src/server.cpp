@@ -4,7 +4,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <signal.h>
-#include "string.cpp"
+#include "string.h"
 #include "clientsData.h"
 #include "server.h"
 
@@ -16,6 +16,9 @@
 static unsigned int cli_count = 0;
 static int uid = 10;
 static list<char *> clientNames;
+
+mongocxx::database db = client["Chat_data"];
+auto clients_db = db["clients"];
 
 /* Send message to all clients except sender */
 void send_message(char *s, int uid)
@@ -42,28 +45,46 @@ void send_message(char *s, int uid)
 
 bool check_name(char *name)
 {
-    for (char *var : clientNames)
-        if (strcmp(name, var) == 0)
-            return true;
+    bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result = clients_db.find_one(document{} << "name" << name << finalize);
+    // cout << maybe_result;
+    if (maybe_result)
+    {
+        std::cout << bsoncxx::to_json(*maybe_result) << "\n";
+        return true;
+    }
+    // for (char *var : clientNames)
+    //     if (strcmp(name, var) == 0)
+    //         return true;
     return false;
 }
 
 void register_client(int sockfd)
 {
     char name[32];
-    cout << "Registratiion" << endl;
+    cout << "Registration" << endl;
+
     if (recv(sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1)
     {
         printf("Didn't enter the name.\n");
     }
-    if (check_name(name))
+    else if (check_name(name))
     {
-        write(sockfd, "Client Exists", strlen("Client Exists"));
+        cout << "Cant Register Existing Client";
+        write(sockfd, "Client Already Exists", strlen("Client Already Exists"));
     }
     else
     {
-        clientNames.push_back(name);
-        write(sockfd, "Registered Successful", strlen("Registered Successful"));
+        auto builder = bsoncxx::builder::stream::document{};
+        bsoncxx::document::value doc_value = builder
+                                             << "name" << name
+                                             << "password"
+                                             << "password"
+                                             << "status"
+                                             << "ofline"
+                                             << finalize;
+        clients_db.insert_one(doc_value.view());
+        write(sockfd, "Client Registered Successfully!!!", strlen("Client Registered Successfully!!!"));
+        cout << "Client added: " << name;
     }
 }
 
@@ -94,26 +115,22 @@ void *handle_client(void *arg)
     char buff_out[BUFFER_SZ];
     char name[32];
     int leave_flag = 0;
-    // char c[1];
+    char option[1];
 
     cli_count++;
     client_t *cli = (client_t *)arg;
-    // while (c != "2")
-    // {
-    //     if (recv(cli->sockfd, c, 1, 0) <= 0)
-    //     {
-    //         printf("Invalid.\n");
-    //     }
+    if (recv(cli->sockfd, option, 1, 0) <= 0)
+    {
+        printf("Invalid.\n");
+    }
 
-    //     if (strcmp(c, "1") == 0)
-    //     {
-    //         register_client(cli->sockfd);
-    //         // cout << "came here";
-    //         // for (char *var : clientNames)
-    //         //     cout << var << endl;
-    //         // leave_flag = 1;
-    //     }
-    // }
+    cout << option;
+
+    if (strcmp(option, "1") == 0)
+    {
+        register_client(cli->sockfd);
+        leave_flag = 1;
+    }
 
     // if (strcmp(c, "2") == 0)
     // {
