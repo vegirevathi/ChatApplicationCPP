@@ -19,4 +19,6 @@ class Client
     int creatingSocket();
     void connectingToServer(int);
     void clientLogin(int);
+    void clientRegister(int);
+    void clientSelection();
 };
