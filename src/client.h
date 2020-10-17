@@ -20,5 +20,7 @@ class Client
     void connectingToServer(int);
     void clientLogin(int);
     void clientRegister(int);
-    void clientSelection();
+    void loginSelection(int);
+    void chatSelection(int, char[]);
+    int messageHandler(int, char[]);
 };
