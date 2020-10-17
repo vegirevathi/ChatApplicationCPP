@@ -37,6 +37,31 @@ void send_message(char *s, int uid)
     pthread_mutex_unlock(&clients_mutex);
 }
 
+void register_client(int sockfd)
+{
+}
+
+void login_client(int sockfd)
+{
+}
+
+bool check_exist(client_t *cli)
+{
+    for (int i = 0; i < MAX_CLIENTS; ++i)
+    {
+        if (clients[i])
+        {
+            if (clients[i]->uid != cli->uid)
+            {
+                if (strcmp(cli->name, clients[i]->name) == 0)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
 /* Handle all communication with the client */
 void *handle_client(void *arg)
 {
@@ -56,9 +81,17 @@ void *handle_client(void *arg)
     else
     {
         strcpy(cli->name, name);
-        sprintf(buff_out, "%s has joined\n", cli->name);
-        printf("%s", buff_out);
-        send_message(buff_out, cli->uid);
+        if (check_exist(cli))
+        {
+            write(cli->sockfd, "Client Exists", strlen("Client Exists"));
+            leave_flag = 1;
+        }
+        else
+        {
+            sprintf(buff_out, "%s has joined\n", cli->name);
+            printf("%s", buff_out);
+            send_message(buff_out, cli->uid);
+        }
     }
 
     bzero(buff_out, BUFFER_SZ);
