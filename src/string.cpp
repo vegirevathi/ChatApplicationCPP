@@ -21,7 +21,7 @@
 //   }
 // }
 
-void sos()
+void str_overwrite_stdout()
 {
   printf("\r%s", "> ");
   fflush(stdout);

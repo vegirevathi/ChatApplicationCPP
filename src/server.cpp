@@ -46,54 +46,34 @@ void send_message(char *s, int uid)
 bool check_name(char *name)
 {
     bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result = clients_db.find_one(document{} << "name" << name << finalize);
-    // cout << maybe_result;
     if (maybe_result)
     {
         std::cout << bsoncxx::to_json(*maybe_result) << "\n";
         return true;
     }
-    // for (char *var : clientNames)
-    //     if (strcmp(name, var) == 0)
-    //         return true;
     return false;
 }
 
-void register_client(int sockfd)
+bool authenticate(char *name, char *password)
 {
-    char name[32];
-    cout << "Registration" << endl;
-
-    if (recv(sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1)
+    bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result = clients_db.find_one(document{}
+                                                                                         << "name" << name
+                                                                                         << "password" << password
+                                                                                         << finalize);
+    cout << "In Auth" << endl;
+    cout << name << "..." << password << endl;
+    if (maybe_result)
     {
-        printf("Didn't enter the name.\n");
+        cout << "ret tr";
+        std::cout << bsoncxx::to_json(*maybe_result) << "\n";
+        return true;
     }
-    else if (check_name(name))
-    {
-        cout << "Cant Register Existing Client";
-        write(sockfd, "Client Already Exists", strlen("Client Already Exists"));
-    }
-    else
-    {
-        auto builder = bsoncxx::builder::stream::document{};
-        bsoncxx::document::value doc_value = builder
-                                             << "name" << name
-                                             << "password"
-                                             << "password"
-                                             << "status"
-                                             << "ofline"
-                                             << finalize;
-        clients_db.insert_one(doc_value.view());
-        write(sockfd, "Client Registered Successfully!!!", strlen("Client Registered Successfully!!!"));
-        cout << "Client added: " << name;
-    }
-}
-
-void login_client(int sockfd)
-{
+    return false;
 }
 
 bool check_exist(client_t *cli)
 {
+    cout << "Exi check";
     for (int i = 0; i < MAX_CLIENTS; ++i)
     {
         if (clients[i])
@@ -102,6 +82,7 @@ bool check_exist(client_t *cli)
             {
                 if (strcmp(cli->name, clients[i]->name) == 0)
                 {
+                    cout << "Exi check";
                     return true;
                 }
             }
@@ -109,51 +90,82 @@ bool check_exist(client_t *cli)
     }
     return false;
 }
-/* Handle all communication with the client */
-void *handle_client(void *arg)
+
+void register_client(int sockfd)
 {
-    char buff_out[BUFFER_SZ];
     char name[32];
+    char password[20];
+
+    cout << "Registration" << endl;
+
+    if ((recv(sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1) ||
+        (recv(sockfd, password, 32, 0) <= 0 || strlen(password) < 2 || strlen(password) >= 32 - 1))
+    {
+        printf("Didn't enter the name or password.\n");
+    }
+    
+    else if (check_name(name))
+    {
+        cout << "Cant Register Existing Client";
+        write(sockfd, "Client Already Exists", strlen("Client Already Exists"));
+    }
+    else
+    {
+        cout << strlen(password) << ", " << strlen(name) << endl;
+        auto builder = bsoncxx::builder::stream::document{};
+        bsoncxx::document::value doc_value = builder
+                                             << "name" << name
+                                             << "password" << password
+                                             << "status"
+                                             << "ofline"
+                                             << finalize;
+        clients_db.insert_one(doc_value.view());
+        write(sockfd, "Client Registered Successfully!!!", strlen("Client Registered Successfully!!!"));
+        cout << "Client added:" << name;
+    }
+}
+
+void login_client(client_t *cli)
+{
+    char name[32];
+    char password[20];
+    char buff_out[BUFFER_SZ];
     int leave_flag = 0;
-    char option[1];
 
-    cli_count++;
-    client_t *cli = (client_t *)arg;
-    if (recv(cli->sockfd, option, 1, 0) <= 0)
-    {
-        printf("Invalid.\n");
-    }
+    cout << "Registration" << endl;
 
-    cout << option;
-
-    if (strcmp(option, "1") == 0)
-    {
-        register_client(cli->sockfd);
-        leave_flag = 1;
-    }
-
-    // if (strcmp(c, "2") == 0)
-    // {
-    // }
-    // Name
-    if (recv(cli->sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1 || leave_flag == 1)
+    if ((recv(cli->sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1) ||
+        (recv(cli->sockfd, password, 32, 0) <= 0 || strlen(password) < 2 || strlen(password) >= 32 - 1))
     {
         printf("Didn't enter the name.\n");
         leave_flag = 1;
     }
     else
     {
-        strcpy(cli->name, name);
-        if (check_exist(cli))
+        cout << name << ", " << password << endl;
+        if (authenticate(name, password))
         {
-            write(cli->sockfd, "Client Exists", strlen("Client Exists"));
-            leave_flag = 1;
+            cout << "Auth Succ" << endl;
+
+            strcpy(cli->name, name);
+            if (check_exist(cli))
+            {
+                write(cli->sockfd, "Client Exists", strlen("Client Exists"));
+                leave_flag = 1;
+            }
+            else
+            {
+                sprintf(buff_out, "%s has joined\n", cli->name);
+                printf("%s", buff_out);
+                send_message(buff_out, cli->uid);
+            }
         }
         else
         {
-            sprintf(buff_out, "%s has joined\n", cli->name);
-            printf("%s", buff_out);
-            send_message(buff_out, cli->uid);
+            cout << "No cli" << endl;
+
+            write(cli->sockfd, "No Such Client", strlen("No Such Client"));
+            leave_flag = 1;
         }
     }
 
@@ -191,6 +203,36 @@ void *handle_client(void *arg)
         }
 
         bzero(buff_out, BUFFER_SZ);
+    }
+
+    cout << "end" << endl;
+}
+
+/* Handle all communication with the client */
+void *handle_client(void *arg)
+{
+    char buff_out[BUFFER_SZ];
+    char name[32];
+    int leave_flag = 0;
+    char option[1];
+
+    cli_count++;
+    client_t *cli = (client_t *)arg;
+    if (recv(cli->sockfd, option, 1, 0) <= 0)
+    {
+        printf("Invalid.\n");
+    }
+
+    cout << option;
+
+    if (strcmp(option, "1") == 0)
+    {
+        register_client(cli->sockfd);
+    }
+
+    else if (strcmp(option, "2") == 0)
+    {
+        login_client(cli);
     }
 
     /* Delete client from array and yield thread */

@@ -31,7 +31,7 @@ void *send_msg_handler(void *arg)
 
     while (1)
     {
-        sos();
+        str_overwrite_stdout();
         fgets(message, LENGTH_MSG, stdin);
         str_trim_lf(message, LENGTH_MSG);
 
@@ -57,7 +57,7 @@ void *recv_msg_handler(void *arg)
         if (receive > 0)
         {
             printf("%s", message);
-            sos();
+            str_overwrite_stdout();
         }
         else if (receive == 0)
         {
@@ -104,6 +104,8 @@ void Client::connectingToServer(int sock)
 
 void Client::clientLogin(int sockfd)
 {
+    send(sockfd, "2", 1, 0);
+
     printf("Please enter your name: ");
     cin >> name;
     str_trim_lf(name, strlen(name));
@@ -118,15 +120,14 @@ void Client::clientLogin(int sockfd)
     cin >> password;
     str_trim_lf(password, strlen(password));
 
-    if (strcmp(password, "123456") != 0)
+    if (strlen(password) > 20 || strlen(password) < 5)
     {
-        printf("Wrong password\n");
+        printf("Password must be less than 10 and more than 5 characters.\n");
         catch_ctrl_c_and_exit(2);
     }
 
-    cout << "Logged in successfully" << endl;
-
     send(sockfd, name, LENGTH_NAME, 0);
+    send(sockfd, password, LENGTH_NAME, 0);
 
     pthread_t send_msg_thread;
     if (pthread_create(&send_msg_thread, NULL, send_msg_handler, NULL) != 0)
@@ -139,6 +140,8 @@ void Client::clientLogin(int sockfd)
     {
         printf("ERROR: pthread\n");
     }
+
+    cout << "Logged in successfully" << endl;
 }
 
 void Client::clientRegister(int sockfd)
@@ -160,13 +163,14 @@ void Client::clientRegister(int sockfd)
     cin >> password;
     str_trim_lf(password, strlen(password));
 
-    if (strlen(password) > 10 || strlen(password) < 5)
+    if (strlen(password) > 20 || strlen(password) < 5)
     {
         printf("Password must be less than 10 and more than 5 characters.\n");
         catch_ctrl_c_and_exit(2);
     }
 
     send(sockfd, name, LENGTH_NAME, 0);
+    send(sockfd, password, LENGTH_NAME, 0);
     recv(sockfd, message, 50, 0);
     if (strcmp(message, "Client Already Exists") == 0)
         cout << "Cant Register Client as already exists";
