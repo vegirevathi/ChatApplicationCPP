@@ -10,172 +10,195 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include "proto.h"
+#include "client.h"
 #include "string.h"
 
 // Global variables
 volatile sig_atomic_t flag = 0;
 int sockfd = 0;
-char nickname[LENGTH_NAME] = {};
-char password[LENGTH_PASSWORD] = {};
+char name[32];
+char password[10];
 
 void catch_ctrl_c_and_exit(int sig)
 {
     flag = 1;
 }
 
-void recv_msg_handler()
+void *send_msg_handler(void *arg)
 {
-    char receiveMessage[LENGTH_SEND] = {};
+    char message[LENGTH_MSG] = {};
+    char buffer[LENGTH_MSG + 32] = {};
+
     while (1)
     {
-        int receive = recv(sockfd, receiveMessage, LENGTH_SEND, 0);
+        str_overwrite_stdout();
+        fgets(message, LENGTH_MSG, stdin);
+        str_trim_lf(message, LENGTH_MSG);
+
+        if (strcmp(message, "exit") == 0)
+        {
+            break;
+        }
+        else
+        {
+            sprintf(buffer, "%s: %s\n", name, message);
+            send(sockfd, buffer, strlen(buffer), 0);
+        }
+    }
+    catch_ctrl_c_and_exit(2);
+}
+
+void *recv_msg_handler(void *arg)
+{
+    char message[LENGTH_MSG] = {};
+    while (1)
+    {
+        int receive = recv(sockfd, message, LENGTH_MSG, 0);
         if (receive > 0)
         {
-            printf("\r%s\n", receiveMessage);
+            printf("%s", message);
             str_overwrite_stdout();
         }
         else if (receive == 0)
         {
             break;
         }
-        else if (strcmp(receiveMessage, "Exit") == 0)
+        else
         {
-            catch_ctrl_c_and_exit(2);
+            // -1
         }
+        memset(message, 0, sizeof(message));
     }
 }
 
-void send_msg_handler()
+int Client::creatingSocket()
 {
-    char message[LENGTH_MSG] = {};
-    while (1)
-    {
-        str_overwrite_stdout();
-        while (fgets(message, LENGTH_MSG, stdin) != NULL)
-        {
-            str_trim_lf(message, LENGTH_MSG);
-            if (strlen(message) == 0)
-            {
-                str_overwrite_stdout();
-            }
-            else
-            {
-                break;
-            }
-        }
-        send(sockfd, message, LENGTH_MSG, 0);
-        if (strcmp(message, "exit") == 0)
-        {
-            break;
-        }
-    }
-    catch_ctrl_c_and_exit(2);
-}
-
-void client_registration()
-{
-    printf("Please enter your name: ");
-    if (fgets(nickname, LENGTH_NAME, stdin) != NULL)
-    {
-        str_trim_lf(nickname, LENGTH_NAME);
-    }
-    if (strlen(nickname) < 2 || strlen(nickname) >= LENGTH_NAME - 1)
-    {
-        printf("\nName must be more than one and less than thirty characters.\n");
-        exit(EXIT_FAILURE);
-    }
-}
-
-void client_login()
-{
-    printf("Please enter your name: ");
-    if (fgets(nickname, LENGTH_NAME, stdin) != NULL)
-    {
-        str_trim_lf(nickname, LENGTH_NAME);
-    }
-    if (strlen(nickname) < 2 || strlen(nickname) >= LENGTH_NAME - 1)
-    {
-        printf("\nName must be more than one and less than thirty characters.\n");
-        exit(EXIT_FAILURE);
-    }
-}
-
-void get_in_choice()
-{
-    int choice = 0;
-    while (choice != 1)
-    {
-        std::cout << "\nEnter your choice\n1. Login\n2.Sign up\n3.Exit";
-        std::cin >> choice;
-        switch (choice)
-        {
-        case 1:
-            client_login();
-            break;
-        case 2:
-            client_registration();
-            break;
-        case 3:
-            exit(EXIT_SUCCESS);
-            break;
-        default:
-            break;
-        }
-    }
-}
-
-int main()
-{
-    signal(SIGINT, catch_ctrl_c_and_exit);
-
-    get_in_choice();
-    // Create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1)
+    if (sockfd == 0)
     {
-        printf("Fail to create a socket.");
+        perror("socket failed");
         exit(EXIT_FAILURE);
     }
+    return sockfd;
+}
 
-    // Socket information
-    struct sockaddr_in server_info, client_info;
-    int s_addrlen = sizeof(server_info);
-    int c_addrlen = sizeof(client_info);
-    memset(&server_info, 0, s_addrlen);
-    memset(&client_info, 0, c_addrlen);
-    server_info.sin_family = PF_INET;
-    server_info.sin_addr.s_addr = inet_addr("127.0.0.1");
-    server_info.sin_port = htons(8888);
+void Client::connectingToServer(int sock)
+{
+    char *ip = "127.0.0.1";
+    int port = 8000;
 
-    // Connect to Server
-    int err = connect(sockfd, (struct sockaddr *)&server_info, s_addrlen);
-    if (err == -1)
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(port);
+    serverAddress.sin_addr.s_addr = inet_addr(ip);
+
+    if (connect(sock, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
     {
-        printf("Connection to Server error!\n");
+        perror("\nConnection Failed \n");
         exit(EXIT_FAILURE);
     }
+    else
+    {
+        printf("\nConnected with server. Sending data...\n");
+    }
+}
 
-    // Names
-    getsockname(sockfd, (struct sockaddr *)&client_info, (socklen_t *)&c_addrlen);
-    getpeername(sockfd, (struct sockaddr *)&server_info, (socklen_t *)&s_addrlen);
-    printf("Connect to Server: %s:%d\n", inet_ntoa(server_info.sin_addr), ntohs(server_info.sin_port));
-    printf("You are: %s:%d\n", inet_ntoa(client_info.sin_addr), ntohs(client_info.sin_port));
+void Client::clientLogin(int sockfd)
+{
+    printf("Please enter your name: ");
+    cin >> name;
+    str_trim_lf(name, strlen(name));
 
-    send(sockfd, nickname, LENGTH_NAME, 0);
+    if (strlen(name) > 32 || strlen(name) < 2)
+    {
+        printf("Name must be less than 30 and more than 2 characters.\n");
+        catch_ctrl_c_and_exit(2);
+    }
+
+    printf("Please enter your password: ");
+    cin >> password;
+    str_trim_lf(password, strlen(password));
+
+    if (strcmp(password, "123456") != 0)
+    {
+        printf("Wrong password\n");
+        catch_ctrl_c_and_exit(2);
+    }
+
+    cout << "Logged in successfully" << endl;
+
+    send(sockfd, name, LENGTH_NAME, 0);
 
     pthread_t send_msg_thread;
-    if (pthread_create(&send_msg_thread, NULL, (void *(*)(void *))send_msg_handler, NULL) != 0)
+    if (pthread_create(&send_msg_thread, NULL, send_msg_handler, NULL) != 0)
     {
-        printf("Create pthread error!\n");
-        exit(EXIT_FAILURE);
+        printf("ERROR: pthread\n");
     }
 
     pthread_t recv_msg_thread;
-    if (pthread_create(&recv_msg_thread, NULL, (void *(*)(void *))recv_msg_handler, NULL) != 0)
+    if (pthread_create(&recv_msg_thread, NULL, recv_msg_handler, NULL) != 0)
     {
-        printf("Create pthread error!\n");
-        exit(EXIT_FAILURE);
+        printf("ERROR: pthread\n");
     }
+}
+
+void Client::clientRegister(int sockfd)
+{
+    cout << "Please enter your name: " << endl;
+    cin >> name;
+    str_trim_lf(name, strlen(name));
+
+    if (strlen(name) > 32 || strlen(name) < 2)
+    {
+        printf("Name must be less than 30 and more than 2 characters.\n");
+        catch_ctrl_c_and_exit(2);
+    }
+
+    cout << "Create your password: " << endl;
+    cin >> password;
+    str_trim_lf(password, strlen(password));
+
+    if (strlen(password) > 10 || strlen(password) < 5)
+    {
+        printf("Password must be less than 10 and more than 5 characters.\n");
+        catch_ctrl_c_and_exit(2);
+    }
+    printf("Registered successfully, exit the terminal to start login");
+    catch_ctrl_c_and_exit(2);
+}
+
+void Client::clientSelection()
+{
+    printf("=== WELCOME TO THE CHATROOM ===\n");
+
+    cout << "Enter 1 to login" << endl;
+    cout << "Enter 2 to register" << endl;
+
+    int choice;
+    cout << "Enter your choice " << endl;
+    cin >> choice;
+    cout << endl;
+    switch (choice)
+    {
+    case 1:
+        clientLogin(sockfd);
+        break;
+    case 2:
+        clientRegister(sockfd);
+        break;
+    default:
+        cout << "Invalid option" << endl;
+        break;
+    }
+}
+
+int main(int argc, char **argv)
+{
+    signal(SIGINT, catch_ctrl_c_and_exit);
+
+    Client client;
+    sockfd = client.creatingSocket();
+    client.connectingToServer(sockfd);
+    client.clientSelection();
 
     while (1)
     {
@@ -187,5 +210,6 @@ int main()
     }
 
     close(sockfd);
-    return 0;
+
+    return EXIT_SUCCESS;
 }

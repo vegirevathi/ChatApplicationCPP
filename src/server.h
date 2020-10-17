@@ -1,27 +1,21 @@
-#ifndef LIST
-#define LIST
-
 #include <iostream>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
-typedef struct ClientNode
+class Server
 {
-    int data;
-    struct ClientNode *prev;
-    struct ClientNode *link;
-    char ip[16];
-    char name[31];
-    char pass[31];
-} ClientList;
+    int server_fd, new_socket;
+    struct sockaddr_in address;
+    int opt = 1;
+    char buffer[1024];
+    int addrlen = sizeof(address);
 
-ClientList *newNode(int sockfd, char *ip)
-{
-    ClientList *np = (ClientList *)malloc(sizeof(ClientList));
-    np->data = sockfd;
-    np->prev = NULL;
-    np->link = NULL;
-    strncpy(np->ip, ip, 16);
-    strncpy(np->name, "NULL", 5);
-    return np;
-}
-
-#endif // LIST
+public:
+    void creatingSocket();
+    void settingSocket();
+    void binding();
+    void listening();
+    int accepting();
+};
