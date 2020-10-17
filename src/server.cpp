@@ -103,7 +103,7 @@ void register_client(int sockfd)
     {
         printf("Didn't enter the name or password.\n");
     }
-    
+
     else if (check_name(name))
     {
         cout << "Cant Register Existing Client";
@@ -150,7 +150,7 @@ void login_client(client_t *cli)
             strcpy(cli->name, name);
             if (check_exist(cli))
             {
-                write(cli->sockfd, "Client Exists", strlen("Client Exists"));
+                write(cli->sockfd, "Client Already Logged In", strlen("Client Already Logged In"));
                 leave_flag = 1;
             }
             else

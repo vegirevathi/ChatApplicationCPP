@@ -128,6 +128,7 @@ void Client::clientLogin(int sockfd)
 
     send(sockfd, name, LENGTH_NAME, 0);
     send(sockfd, password, LENGTH_NAME, 0);
+    recv(sockfd, message, 50, 0);
 
     pthread_t send_msg_thread;
     if (pthread_create(&send_msg_thread, NULL, send_msg_handler, NULL) != 0)
@@ -141,7 +142,7 @@ void Client::clientLogin(int sockfd)
         printf("ERROR: pthread\n");
     }
 
-    cout << "Logged in successfully" << endl;
+    cout << message << endl;
 }
 
 void Client::clientRegister(int sockfd)
@@ -172,10 +173,9 @@ void Client::clientRegister(int sockfd)
     send(sockfd, name, LENGTH_NAME, 0);
     send(sockfd, password, LENGTH_NAME, 0);
     recv(sockfd, message, 50, 0);
-    if (strcmp(message, "Client Already Exists") == 0)
-        cout << "Cant Register Client as already exists";
-    else if (strcmp(message, "Client Registered Successfully!!!") == 0)
-        cout << message;
+
+    cout << message;
+
     catch_ctrl_c_and_exit(2);
 }
 
