@@ -1,4 +1,4 @@
-#include <stdio.h>
+//Client side program 
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -11,6 +11,8 @@
 #include "proto.h"
 #include "client.h"
 #include "string.h"
+
+#define PORT 8000
 
 // Global variables
 volatile sig_atomic_t flag = 0;
@@ -37,6 +39,8 @@ void* send_msg_handler(void* arg) {
       sprintf(buffer, "%s: %s\n", name , message);
       send(sockfd, buffer, strlen(buffer), 0);
     }
+	bzero(message, LENGTH_MSG);
+    bzero(buffer, LENGTH_MSG + 32);
   }
   catch_ctrl_c_and_exit(2);
 }
@@ -71,10 +75,9 @@ int Client::creatingSocket()
 void Client::connectingToServer(int sock)
 {
 	char *ip = "127.0.0.1";
-	int port = 8000;
 
 	serverAddress.sin_family = AF_INET; 
-	serverAddress.sin_port = htons(port); 
+	serverAddress.sin_port = htons(PORT); 
     serverAddress.sin_addr.s_addr = inet_addr(ip);
 
     if (connect(sock, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) 
@@ -82,43 +85,82 @@ void Client::connectingToServer(int sock)
 		perror("\nConnection Failed \n");  
         exit(EXIT_FAILURE);
 	} else {
-		printf("\nConnected with server. Sending data...\n");
+		cout << "\nConnected with server. Sending data...\n";
+	}
+}
+
+int Client::messageHandler(int sockfd, char* name)
+{
+	send(sockfd, name, LENGTH_NAME, 0);
+
+	pthread_t send_msg_thread;
+  	if(pthread_create(&send_msg_thread, NULL, send_msg_handler, NULL) != 0){
+		cout << "ERROR: pthread\n";
+    	return EXIT_FAILURE;
+	}
+
+	pthread_t recv_msg_thread;
+  	if(pthread_create(&recv_msg_thread, NULL, recv_msg_handler, NULL) != 0){
+		cout << "ERROR: pthread\n";
+		return EXIT_FAILURE;
+	}
+}
+
+void Client::chatSelection(int sockfd, char* name)
+{
+	cout << "Enter 1 to single chat" << endl;
+	cout << "Enter 2 to group chat" << endl;
+	cout << "Enter 3 to everyone" << endl;
+
+	int choice;
+	cout << "Enter your choice " << endl;
+	cin >> choice;
+	cout << endl;
+	switch(choice) {
+		case 1: 
+			{
+				cout << "Enter name of the person you want to chat" << endl;
+			}
+			break;
+		case 2:
+			{
+				cout << "Enter name of the group you want to chat" << endl;
+			}
+			break;
+		case 3:
+			{
+				cout << "you are chatting to everyone" << endl;
+				messageHandler(sockfd, name);
+			}
+			break;
+		default:
+			cout << "Invalid option" << endl;
+            break;
 	}
 }
 
 void Client::clientLogin(int sockfd)
 {
-	printf("Please enter your name: ");
+	cout << "Please enter your name: ";
 	cin >> name;
 	str_trim_lf(name, strlen(name));
 
 
 	if (strlen(name) > 32 || strlen(name) < 2){
-		printf("Name must be less than 30 and more than 2 characters.\n");
-		catch_ctrl_c_and_exit(2);
+		cout << "Name must be less than 30 and more than 2 characters.\n";
+		clientLogin(sockfd);
 	}
 
-	printf("Please enter your password: ");
+	cout << "Please enter your password: ";
 	cin >> password;
 	str_trim_lf(password, strlen(password));
 
 	if (strcmp(password, "123456") != 0) {
-		printf("Wrong password\n");
-		catch_ctrl_c_and_exit(2);
-    } 
-	
-	cout << "Logged in successfully" << endl;
-
-	send(sockfd, name, LENGTH_NAME, 0);
-
-	pthread_t send_msg_thread;
-  	if(pthread_create(&send_msg_thread, NULL, send_msg_handler, NULL) != 0){
-		printf("ERROR: pthread\n");
-	}
-
-	pthread_t recv_msg_thread;
-  	if(pthread_create(&recv_msg_thread, NULL, recv_msg_handler, NULL) != 0){
-		printf("ERROR: pthread\n");
+		cout << "Wrong password.. Enter your details again\n";
+		clientLogin(sockfd);
+    } else {	
+		cout << "Logged in successfully\n\n" << endl;
+		chatSelection(sockfd, name);
 	}
 }
 
@@ -129,9 +171,9 @@ void Client::clientRegister(int sockfd)
 	str_trim_lf(name, strlen(name));
 
 
-	if (strlen(name) > 32 || strlen(name) < 2){
-		printf("Name must be less than 30 and more than 2 characters.\n");
-		catch_ctrl_c_and_exit(2);
+	if (strlen(name) > 30 || strlen(name) < 2){
+		cout << "Name must be more than 2 and less than 30 characters" << endl;
+		clientRegister(sockfd);
 	}
 
 	cout << "Create your password: " << endl;
@@ -140,16 +182,17 @@ void Client::clientRegister(int sockfd)
 
 
 	if (strlen(password) > 10 || strlen(password) < 5){
-		printf("Password must be less than 10 and more than 5 characters.\n");
-		catch_ctrl_c_and_exit(2);
+		cout << "Password must be less than 10 and more than 5 characters." << endl;
+		cout << "Enter your details again\n" << endl;
+	} else {
+		cout << "\nRegistered successfully\n" << endl;
+		loginSelection(sockfd);
 	}
-	printf("Registered successfully, exit the terminal to start login");
-	catch_ctrl_c_and_exit(2);
 }
 
-void Client::clientSelection()
+void Client::loginSelection(int sockfd)
 {
-	printf("=== WELCOME TO THE CHATROOM ===\n");
+	cout << "=== WELCOME TO THE CHATROOM ===\n" << endl;
 
 	cout << "Enter 1 to login" << endl;
 	cout << "Enter 2 to register" << endl;
@@ -171,18 +214,18 @@ void Client::clientSelection()
 	}
 }
 
-int main(int argc, char **argv)
+int main()
 {
 	signal(SIGINT, catch_ctrl_c_and_exit);
 
 	Client client;
 	sockfd = client.creatingSocket();
 	client.connectingToServer(sockfd);
-	client.clientSelection();
+	client.loginSelection(sockfd);
 
 	while (1){
 		if(flag){
-			printf("\nBye\n");
+			cout << "\nBye\n";
 			break;
     	}
 	}

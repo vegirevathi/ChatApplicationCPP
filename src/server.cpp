@@ -44,7 +44,7 @@ void *handle_client(void *arg){
 
 	// Name
 	if(recv(cli->sockfd, name, 32, 0) <= 0 || strlen(name) <  2 || strlen(name) >= 32-1){
-		printf("Didn't enter the name.\n");
+		cout << "Didn't enter the name.\n";
 		leave_flag = 1;
 	} else{
 		strcpy(cli->name, name);
@@ -66,7 +66,7 @@ void *handle_client(void *arg){
 				send_message(buff_out, cli->uid);
 
 				str_trim_lf(buff_out, strlen(buff_out));
-				printf("%s -> %s\n", buff_out, cli->name);
+				printf("%s\n", buff_out);
 			}
 		} else if (receive == 0 || strcmp(buff_out, "exit") == 0){
 			sprintf(buff_out, "%s has left\n", cli->name);
@@ -77,16 +77,15 @@ void *handle_client(void *arg){
 			printf("ERROR: -1\n");
 			leave_flag = 1;
 		}
-
 		bzero(buff_out, BUFFER_SZ);
 	}
 
   /* Delete client from array and yield thread */
 	close(cli->sockfd);
-  array_remove(cli->uid);
-  free(cli);
-  cli_count--;
-  pthread_detach(pthread_self());
+	array_remove(cli->uid);
+	free(cli);
+	cli_count--;
+	pthread_detach(pthread_self());
 
 	return NULL;
 }
@@ -152,7 +151,7 @@ int Server::accepting()
 }
 
 
-int main(int argc, char **argv)
+int main()
 {
 	signal(SIGPIPE, SIG_IGN);
 
@@ -163,7 +162,7 @@ int main(int argc, char **argv)
 	server.binding();
 	server.listening();
 
-	printf("=== WELCOME TO THE CHATROOM ===\n");
+	cout << "=== WELCOME TO THE CHATROOM ===\n";
 
 	while(1){
 
