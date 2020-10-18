@@ -63,10 +63,6 @@ void *recv_msg_handler(void *arg)
         {
             break;
         }
-        else
-        {
-            // -1
-        }
         memset(message, 0, sizeof(message));
     }
 }
@@ -105,6 +101,7 @@ void Client::connectingToServer(int sock)
 void Client::clientLogin(int sockfd)
 {
     send(sockfd, "2", 1, 0);
+    char message[50];
 
     printf("Please enter your name: ");
     cin >> name;
