@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include "string.h"
+#include "../Utils/string.h"
 #include "clientsData.h"
 #include "server.h"
 
@@ -41,28 +42,6 @@ void send_message_to_all(char *s, int uid)
 
 	pthread_mutex_unlock(&clients_mutex);
 }
-
-// void send_message_to_single(char *s, int uid)
-// {
-// 	pthread_mutex_lock(&clients_mutex);
-
-// 	for (int i = 0; i < MAX_CLIENTS; ++i)
-// 	{
-// 		if (clients[i])
-// 		{
-// 			if (clients[i]->uid != uid)
-// 			{
-// 				if (write(clients[i]->sockfd, s, strlen(s)) < 0)
-// 				{
-// 					perror("ERROR: write to descriptor failed");
-// 					break;
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	pthread_mutex_unlock(&clients_mutex);
-// }
 
 bool check_name(char *name)
 {

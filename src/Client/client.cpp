@@ -9,9 +9,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-#include "proto.h"
+#include "../Utils/proto.h"
 #include "client.h"
-#include "string.h"
+#include "../Utils/string.h"
 
 #define PORT 8000
 
