@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -60,11 +61,11 @@ bool authenticate(char *name, char *password)
 																						 << "name" << name
 																						 << "password" << password
 																						 << finalize);
-	cout << "In Auth" << endl;
+
+	cout << "\033[;33m\nIn Authentication  \033[0m\n";
 	cout << name << "..." << password << endl;
 	if (maybe_result)
 	{
-		cout << "ret tr" << endl;
 		std::cout << bsoncxx::to_json(*maybe_result) << "\n";
 		return true;
 	}
@@ -73,7 +74,7 @@ bool authenticate(char *name, char *password)
 
 bool check_exist(client_t *cli)
 {
-	cout << "Exi check";
+	cout << "\033[;33m \nChecking Clients Database  \033[0m\n\n";
 	for (int i = 0; i < MAX_CLIENTS; ++i)
 	{
 		if (clients[i])
@@ -82,7 +83,7 @@ bool check_exist(client_t *cli)
 			{
 				if (strcmp(cli->name, clients[i]->name) == 0)
 				{
-					cout << "Exi check";
+					cout << "\033[;32m Client is present  \033[0m\n\n";
 					return true;
 				}
 			}
@@ -96,17 +97,17 @@ void register_client(int sockfd)
 	char name[32];
 	char password[20];
 
-	cout << "Registration" << endl;
+	cout << "\033[;33m \nRegistration is in process...  \033[0m\n";
 
 	if ((recv(sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1) ||
 		(recv(sockfd, password, 32, 0) <= 0 || strlen(password) < 2 || strlen(password) >= 32 - 1))
 	{
-		printf("Didn't enter the name or password.\n");
+		cout << "\033[;31m \nDidnt enter the name or password   \033[0m\n";
 	}
 
 	else if (check_name(name))
 	{
-		cout << "Cant Register Existing Client";
+		cout << "\033[;31m \nClient is already registered!!!   \033[0m\n";
 		write(sockfd, "0", strlen("0"));
 	}
 	else
@@ -117,11 +118,11 @@ void register_client(int sockfd)
 											 << "name" << name
 											 << "password" << password
 											 << "status"
-											 << "ofline"
+											 << "offline"
 											 << finalize;
 		clients_db.insert_one(doc_value.view());
 		write(sockfd, "1", strlen("1"));
-		cout << "Client added:" << name;
+		cout << "Client added:" << name << endl;
 	}
 }
 
@@ -131,13 +132,14 @@ void login_client(client_t *cli)
 	char password[20];
 	char buff_out[BUFFER_SZ];
 	int leave_flag = 0;
+	client_t* cli2;
 
-	cout << "Login" << endl;
+	cout << "\033[;33m Login is in process...   \033[0m\n";
 
 	if ((recv(cli->sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1) ||
 		(recv(cli->sockfd, password, 32, 0) <= 0 || strlen(password) < 2 || strlen(password) >= 32 - 1))
 	{
-		printf("Didn't enter the name.\n");
+		cout << "\033[;31m Didnt enter the name or password \033[0m\n";
 		leave_flag = 1;
 	}
 	else
@@ -145,7 +147,7 @@ void login_client(client_t *cli)
 		cout << name << ", " << password << endl;
 		if (authenticate(name, password))
 		{
-			cout << "Auth Succ" << endl;
+			cout << "\033[;32m Authentication Successful  \033[0m\n";
 
 			strcpy(cli->name, name);
 			if (check_exist(cli))
@@ -163,7 +165,7 @@ void login_client(client_t *cli)
 		}
 		else
 		{
-			cout << "No cli" << endl;
+			cout << "\033[;31m No Client Exists!!!   \033[0m\n";
 
 			write(cli->sockfd, "2", strlen("2"));
 			leave_flag = 1;
@@ -187,7 +189,7 @@ void login_client(client_t *cli)
 				send_message_to_all(buff_out, cli->uid);
 
 				str_trim_lf(buff_out, strlen(buff_out));
-				printf("%s -> %s\n", buff_out, cli->name);
+				printf("%s \n", buff_out);
 			}
 		}
 		else if (receive == 0 || strcmp(buff_out, "exit") == 0)
@@ -199,7 +201,7 @@ void login_client(client_t *cli)
 		}
 		else
 		{
-			printf("ERROR: -1\n");
+			cout << "ERROR: -1\n";
 			leave_flag = 1;
 		}
 
@@ -221,7 +223,7 @@ void *handle_client(void *arg)
 	client_t *cli = (client_t *)arg;
 	if (recv(cli->sockfd, option, 1, 0) <= 0)
 	{
-		printf("Invalid.\n");
+		cout << "\033[;31m Invalid Credentials   \033[0m\n";
 	}
 
 	cout << option;
@@ -292,7 +294,7 @@ void Server::listening()
 	}
 	else
 	{
-		std::cout << "Server started. Listening...." << std::endl;
+		cout << "\033[;34m \nServer started..Listening   \033[0m\n";
 	}
 }
 
@@ -306,7 +308,7 @@ int Server::accepting()
 	}
 	else
 	{
-		std::cout << "Server started. Accepting...." << std::endl;
+		cout << "\033[;34m \nServer started..Accepting..   \033[0m\n";
 	}
 	return connectionStatus;
 }
@@ -322,7 +324,7 @@ int main(int argc, char **argv)
 	server.binding();
 	server.listening();
 
-	printf("=== WELCOME TO THE CHATROOM ===\n");
+	cout << "\033[1;35m WELCOME TO THE CHATROOM   \033[0m\n";
 
 	while (1)
 	{
@@ -333,14 +335,10 @@ int main(int argc, char **argv)
 		client_t *cli = (client_t *)malloc(sizeof(client_t));
 		cli->sockfd = connfd;
 		cli->uid = uid++;
-
-		/* Add client to the array */
 		array_add(cli);
 
 		pthread_t tid;
 		pthread_create(&tid, NULL, &handle_client, (void *)cli);
-
-		/* Reduce CPU usage */
 		sleep(1);
 	}
 
