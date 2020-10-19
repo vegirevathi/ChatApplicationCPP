@@ -13,6 +13,8 @@
 #include "client.h"
 #include "string.h"
 
+#define PORT 8000
+
 // Global variables
 volatile sig_atomic_t flag = 0;
 int sockfd = 0;
@@ -44,6 +46,8 @@ void *send_msg_handler(void *arg)
             sprintf(buffer, "%s: %s\n", name, message);
             send(sockfd, buffer, strlen(buffer), 0);
         }
+        bzero(message, LENGTH_MSG);
+        bzero(buffer, LENGTH_MSG + 32);
     }
     catch_ctrl_c_and_exit(2);
 }
@@ -81,10 +85,9 @@ int Client::creatingSocket()
 void Client::connectingToServer(int sock)
 {
     char *ip = "127.0.0.1";
-    int port = 8000;
 
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_port = htons(port);
+    serverAddress.sin_port = htons(PORT);
     serverAddress.sin_addr.s_addr = inet_addr(ip);
 
     if (connect(sock, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
@@ -98,10 +101,50 @@ void Client::connectingToServer(int sock)
     }
 }
 
+int Client::messageHandler(int sockfd)
+{
+    pthread_t send_msg_thread;
+    if (pthread_create(&send_msg_thread, NULL, send_msg_handler, NULL) != 0)
+    {
+        printf("ERROR: pthread\n");
+    }
+
+    pthread_t recv_msg_thread;
+    if (pthread_create(&recv_msg_thread, NULL, recv_msg_handler, NULL) != 0)
+    {
+        printf("ERROR: pthread\n");
+    }
+}
+
+void Client::chatSelection(int sockfd)
+{
+    cout << "Enter 1 to single chat" << endl;
+    cout << "Enter 2 to everyone" << endl;
+
+    int choice;
+    cout << "Enter your choice " << endl;
+    cin >> choice;
+    cout << endl;
+    switch (choice)
+    {
+    case 1:
+        cout << "Enter name of the person you want to chat" << endl;
+        cout << "1 - 1 is in process\n";
+        break;
+    case 2:
+        cout << "you are chatting to everyone" << endl;
+        messageHandler(sockfd);
+        break;
+    default:
+        cout << "Invalid option" << endl;
+        break;
+    }
+}
+
 void Client::clientLogin(int sockfd)
 {
     send(sockfd, "2", 1, 0);
-    char message[50];
+    char message[1];
 
     printf("Please enter your name: ");
     cin >> name;
@@ -126,25 +169,20 @@ void Client::clientLogin(int sockfd)
     send(sockfd, name, LENGTH_NAME, 0);
     send(sockfd, password, LENGTH_NAME, 0);
     recv(sockfd, message, 50, 0);
-
-    pthread_t send_msg_thread;
-    if (pthread_create(&send_msg_thread, NULL, send_msg_handler, NULL) != 0)
-    {
-        printf("ERROR: pthread\n");
-    }
-
-    pthread_t recv_msg_thread;
-    if (pthread_create(&recv_msg_thread, NULL, recv_msg_handler, NULL) != 0)
-    {
-        printf("ERROR: pthread\n");
-    }
-
     cout << message << endl;
+
+    if (strcmp(message, "1") == 0)
+        chatSelection(sockfd);
+    else
+    {
+        cout << "Cant login" << endl;
+        clientLogin(sockfd);
+    }
 }
 
 void Client::clientRegister(int sockfd)
 {
-    char message[50];
+    char message[1];
     send(sockfd, "1", 1, 0);
 
     cout << "Please enter your name: " << endl;
@@ -172,6 +210,13 @@ void Client::clientRegister(int sockfd)
     recv(sockfd, message, 50, 0);
 
     cout << message;
+
+    if (strcmp(message, "1") == 0)
+        cout << "Registration Successful \n";
+    else
+    {
+        cout << "Unsuccessful Registration";
+    }
 
     catch_ctrl_c_and_exit(2);
 }
@@ -211,13 +256,11 @@ int main(int argc, char **argv)
     client.clientSelection();
 
     while (1)
-    {
         if (flag)
         {
             printf("\nBye\n");
             break;
         }
-    }
 
     close(sockfd);
 

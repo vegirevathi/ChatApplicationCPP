@@ -17,6 +17,8 @@ class Client
 public:
     int creatingSocket();
     void connectingToServer(int);
+    int messageHandler(int);
+    void chatSelection(int);
     void clientLogin(int);
     void clientRegister(int);
     void clientSelection();
