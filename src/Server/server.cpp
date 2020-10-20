@@ -44,6 +44,30 @@ void send_message_to_all(char *s, int uid)
 	pthread_mutex_unlock(&clients_mutex);
 }
 
+void send_message_to_particular_client(char *s, int uid)
+{
+	pthread_mutex_lock(&clients_mutex);
+
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if (clients[i])
+		{
+			if (clients[i]->uid != uid)
+			{
+				if (clients[i]->name == s){
+				if (write(clients[i]->sockfd, s, strlen(s)) < 0)
+				{
+					perror("ERROR: write to descriptor failed");
+					break;
+				}
+				}
+			}
+		}
+	}
+
+	pthread_mutex_unlock(&clients_mutex);
+}
+
 bool check_name(char *name)
 {
 	bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result = clients_db.find_one(document{} << "name" << name << finalize);
@@ -112,7 +136,7 @@ void register_client(int sockfd)
 	}
 	else
 	{
-		cout << strlen(password) << ", " << strlen(name) << endl;
+		//cout << strlen(password) << ", " << strlen(name) << endl;
 		auto builder = bsoncxx::builder::stream::document{};
 		bsoncxx::document::value doc_value = builder
 											 << "name" << name
@@ -122,7 +146,7 @@ void register_client(int sockfd)
 											 << finalize;
 		clients_db.insert_one(doc_value.view());
 		write(sockfd, "1", strlen("1"));
-		cout << "Client added:" << name << endl;
+		cout << "Client added successfully:" << name << endl;
 	}
 }
 
@@ -159,7 +183,7 @@ void login_client(client_t *cli)
 			{
 				write(cli->sockfd, "1", strlen("1"));
 				sprintf(buff_out, "%s has joined\n", cli->name);
-				printf("%s", buff_out);
+				cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
 				send_message_to_all(buff_out, cli->uid);
 			}
 		}
@@ -182,6 +206,7 @@ void login_client(client_t *cli)
 		}
 
 		int receive = recv(cli->sockfd, buff_out, BUFFER_SZ, 0);
+
 		if (receive > 0)
 		{
 			if (strlen(buff_out) > 0)
@@ -195,7 +220,7 @@ void login_client(client_t *cli)
 		else if (receive == 0 || strcmp(buff_out, "exit") == 0)
 		{
 			sprintf(buff_out, "%s has left\n", cli->name);
-			printf("%s", buff_out);
+			cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
 			send_message_to_all(buff_out, cli->uid);
 			leave_flag = 1;
 		}
@@ -315,6 +340,7 @@ int Server::accepting()
 
 int main(int argc, char **argv)
 {
+	system("clear");
 	signal(SIGPIPE, SIG_IGN);
 
 	Server server;
