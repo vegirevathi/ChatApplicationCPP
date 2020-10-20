@@ -9,6 +9,7 @@
 #include "../Utils/string.h"
 #include "clientsData.h"
 #include "server.h"
+#include "../Utils/proto.h"
 
 #define MAX_CLIENTS 100
 #define BUFFER_SZ 2048
@@ -20,6 +21,7 @@ static int uid = 10;
 
 mongocxx::database db = client["Chat_data"];
 auto clients_db = db["clients"];
+auto chat_room_messages = db["chatroom"];
 
 /* Send message to all clients except sender */
 void send_message_to_all(char *s, int uid)
@@ -36,6 +38,31 @@ void send_message_to_all(char *s, int uid)
 				{
 					perror("ERROR: write to descriptor failed");
 					break;
+				}
+			}
+		}
+	}
+
+	pthread_mutex_unlock(&clients_mutex);
+}
+
+void send_message_to_particular_client(char *s, int uid)
+{
+	pthread_mutex_lock(&clients_mutex);
+
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if (clients[i])
+		{
+			if (clients[i]->uid != uid)
+			{
+				if (clients[i]->name == s)
+				{
+					if (write(clients[i]->sockfd, s, strlen(s)) < 0)
+					{
+						perror("ERROR: write to descriptor failed");
+						break;
+					}
 				}
 			}
 		}
@@ -112,7 +139,7 @@ void register_client(int sockfd)
 	}
 	else
 	{
-		cout << strlen(password) << ", " << strlen(name) << endl;
+		//cout << strlen(password) << ", " << strlen(name) << endl;
 		auto builder = bsoncxx::builder::stream::document{};
 		bsoncxx::document::value doc_value = builder
 											 << "name" << name
@@ -122,7 +149,7 @@ void register_client(int sockfd)
 											 << finalize;
 		clients_db.insert_one(doc_value.view());
 		write(sockfd, "1", strlen("1"));
-		cout << "Client added:" << name << endl;
+		cout << "Client added successfully:" << name << endl;
 	}
 }
 
@@ -131,8 +158,9 @@ void login_client(client_t *cli)
 	char name[32];
 	char password[20];
 	char buff_out[BUFFER_SZ];
+	char buffer[LENGTH_MSG + 32] = {};
 	int leave_flag = 0;
-	client_t* cli2;
+	client_t *cli2;
 
 	cout << "\033[;33m Login is in process...   \033[0m\n";
 
@@ -159,7 +187,7 @@ void login_client(client_t *cli)
 			{
 				write(cli->sockfd, "1", strlen("1"));
 				sprintf(buff_out, "%s has joined\n", cli->name);
-				printf("%s", buff_out);
+				cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
 				send_message_to_all(buff_out, cli->uid);
 			}
 		}
@@ -182,20 +210,35 @@ void login_client(client_t *cli)
 		}
 
 		int receive = recv(cli->sockfd, buff_out, BUFFER_SZ, 0);
+
 		if (receive > 0)
 		{
 			if (strlen(buff_out) > 0)
 			{
-				send_message_to_all(buff_out, cli->uid);
+				time_t now = time(0);
+				auto builder = bsoncxx::builder::stream::document{};
+				bsoncxx::document::value doc_value = builder
+													 << "from" << cli->name
+													 << "message" << buff_out
+													 << "time" << ctime(&now)
+													 << finalize;
+				chat_room_messages.insert_one(doc_value.view());
 
-				str_trim_lf(buff_out, strlen(buff_out));
-				printf("%s \n", buff_out);
+				sprintf(buffer, "%s: %s\n", cli->name, buff_out);
+				send_message_to_all(buffer, cli->uid);
+				str_trim_lf(buffer, strlen(buffer));
+				printf("%s\n", buffer);
+
+				// send_message_to_all(buff_out, cli->uid);
+
+				// str_trim_lf(buff_out, strlen(buff_out));
+				// printf("%s \n", buff_out);
 			}
 		}
 		else if (receive == 0 || strcmp(buff_out, "exit") == 0)
 		{
 			sprintf(buff_out, "%s has left\n", cli->name);
-			printf("%s", buff_out);
+			cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
 			send_message_to_all(buff_out, cli->uid);
 			leave_flag = 1;
 		}
@@ -204,7 +247,7 @@ void login_client(client_t *cli)
 			cout << "ERROR: -1\n";
 			leave_flag = 1;
 		}
-
+		bzero(buffer, LENGTH_MSG + 32);
 		bzero(buff_out, BUFFER_SZ);
 	}
 
@@ -315,6 +358,7 @@ int Server::accepting()
 
 int main(int argc, char **argv)
 {
+	system("clear");
 	signal(SIGPIPE, SIG_IGN);
 
 	Server server;

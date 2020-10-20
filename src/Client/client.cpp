@@ -30,7 +30,6 @@ void catch_ctrl_c_and_exit(int sig)
 void *send_msg_handler(void *arg)
 {
     char message[LENGTH_MSG] = {};
-    char buffer[LENGTH_MSG + 32] = {};
 
     while (1)
     {
@@ -44,11 +43,9 @@ void *send_msg_handler(void *arg)
         }
         else
         {
-            sprintf(buffer, "%s: %s\n", name, message);
-            send(sockfd, buffer, strlen(buffer), 0);
+            send(sockfd, message, strlen(message), 0);
         }
         bzero(message, LENGTH_MSG);
-        bzero(buffer, LENGTH_MSG + 32);
     }
     catch_ctrl_c_and_exit(2);
 }
@@ -78,8 +75,8 @@ void *passwordPrinting()
     char a;
     for (i = 0;;)
     {
-        a = getch();
-        if ((a >= 'a' && a <= 'z') || (a >= 'A' && a <= 'Z') || (a >= '0' && a <= '9'))
+        a=getch();
+        if((a>='a'&&a<='z')||(a>='A'&&a<='Z')||(a>='0'&&a<='9'))
         {
             password[i] = a;
             ++i;
@@ -155,6 +152,9 @@ void Client::chatSelection(int sockfd)
     {
     case 1:
         cout << "\033[;34mEnter name of the person you want to chat \033[0m\n";
+        cin >> name;
+        // send(sockfd, name, strlen(name), 0);
+        messageHandler(sockfd);
         break;
     case 2:
         system("clear");
@@ -197,10 +197,12 @@ void Client::clientLogin(int sockfd)
     send(sockfd, password, LENGTH_NAME, 0);
     recv(sockfd, message, 50, 0);
 
-    cout << message;
-
     if (strcmp(message, "1") == 0)
+    {
+        cout << "\033[;33m \n\nLogin Successful   \033[0m\n";
+        sleep(5);
         chatSelection(sockfd);
+    }
     else
     {
         cout << "\033[;34m Username or password is incorrect.. Enter again!!!   \033[0m\n";
@@ -239,16 +241,14 @@ void Client::clientRegister(int sockfd)
     send(sockfd, password, LENGTH_NAME, 0);
     recv(sockfd, message, 50, 0);
 
-    cout << message;
-
     if (strcmp(message, "1") == 0)
     {
-        cout << "\033[;34m Registration Successful   \033[0m\n";
+        cout << "\033[;33m \n\nRegistration Successful   \033[0m\n";
         sleep(5);
     }
     else
     {
-        cout << "\033[;34m Unsuccessful Registration \033[0m\n";
+        cout << "\033[;31m \n\nUnsuccessful Registration \033[0m\n";
         sleep(5);
     }
 
