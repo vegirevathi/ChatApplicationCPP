@@ -1,12 +1,13 @@
- #pragma once
- #include <netinet/in.h> 
- #include <iostream>
+#pragma once
+#include <netinet/in.h>
+#include <iostream>
 
 #define MAX_CLIENTS 100
 
 using namespace std;
 
-typedef struct{
+typedef struct
+{
 	struct sockaddr_in address;
 	int sockfd;
 	int uid;
@@ -18,11 +19,14 @@ client_t *clients[MAX_CLIENTS];
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* Add clients to array */
-void array_add(client_t *cl){
+void array_add(client_t *cl)
+{
 	pthread_mutex_lock(&clients_mutex);
 
-	for(int i=0; i < MAX_CLIENTS; ++i){
-		if(!clients[i]){
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if (!clients[i])
+		{
 			clients[i] = cl;
 			break;
 		}
@@ -32,12 +36,16 @@ void array_add(client_t *cl){
 }
 
 /* Remove clients from array */
-void array_remove(int uid){
+void array_remove(int uid)
+{
 	pthread_mutex_lock(&clients_mutex);
 
-	for(int i=0; i < MAX_CLIENTS; ++i){
-		if(clients[i]){
-			if(clients[i]->uid == uid){
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if (clients[i])
+		{
+			if (clients[i]->uid == uid)
+			{
 				clients[i] = NULL;
 				break;
 			}

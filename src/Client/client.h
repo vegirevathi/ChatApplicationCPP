@@ -1,5 +1,5 @@
 #pragma once
-#include<iostream>
+#include <iostream>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
@@ -14,13 +14,12 @@ class Client
     char buffer[1024];
     struct sockaddr_in serverAddress;
 
-    public:
-
+public:
     int creatingSocket();
     void connectingToServer(int);
+    int messageHandler(int);
+    void chatSelection(int);
     void clientLogin(int);
     void clientRegister(int);
-    void loginSelection(int);
-    void chatSelection(int, char[]);
-    int messageHandler(int, char[]);
+    void clientSelection();
 };
