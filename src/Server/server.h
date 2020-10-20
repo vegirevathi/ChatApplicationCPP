@@ -20,6 +20,9 @@ using bsoncxx::builder::stream::finalize;
 using bsoncxx::builder::stream::open_array;
 using bsoncxx::builder::stream::open_document;
 
+using bsoncxx::builder::basic::kvp;
+using bsoncxx::builder::basic::make_document;
+
 mongocxx::instance instance{}; // This should be done only once.
 mongocxx::client client{mongocxx::uri{}};
 

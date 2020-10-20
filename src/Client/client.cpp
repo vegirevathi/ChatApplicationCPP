@@ -30,7 +30,6 @@ void catch_ctrl_c_and_exit(int sig)
 void *send_msg_handler(void *arg)
 {
     char message[LENGTH_MSG] = {};
-    char buffer[LENGTH_MSG + 32] = {};
 
     while (1)
     {
@@ -44,11 +43,9 @@ void *send_msg_handler(void *arg)
         }
         else
         {
-            sprintf(buffer, "%s: %s\n", name, message);
-            send(sockfd, buffer, strlen(buffer), 0);
+            send(sockfd, message, strlen(message), 0);
         }
         bzero(message, LENGTH_MSG);
-        bzero(buffer, LENGTH_MSG + 32);
     }
     catch_ctrl_c_and_exit(2);
 }

@@ -7,6 +7,7 @@
 #include <signal.h>
 #include "string.h"
 #include "../Utils/string.h"
+#include "../Utils/proto.h"
 #include "clientsData.h"
 #include "server.h"
 
@@ -20,6 +21,7 @@ static int uid = 10;
 
 mongocxx::database db = client["Chat_data"];
 auto clients_db = db["clients"];
+auto chat_room_messages = db["chatroom"];
 
 /* Send message to all clients except sender */
 void send_message_to_all(char *s, int uid)
@@ -117,8 +119,6 @@ void register_client(int sockfd)
 		bsoncxx::document::value doc_value = builder
 											 << "name" << name
 											 << "password" << password
-											 << "status"
-											 << "offline"
 											 << finalize;
 		clients_db.insert_one(doc_value.view());
 		write(sockfd, "1", strlen("1"));
@@ -131,8 +131,9 @@ void login_client(client_t *cli)
 	char name[32];
 	char password[20];
 	char buff_out[BUFFER_SZ];
+	char buffer[LENGTH_MSG + 32] = {};
 	int leave_flag = 0;
-	client_t* cli2;
+	client_t *cli2;
 
 	cout << "\033[;33m Login is in process...   \033[0m\n";
 
@@ -186,10 +187,19 @@ void login_client(client_t *cli)
 		{
 			if (strlen(buff_out) > 0)
 			{
-				send_message_to_all(buff_out, cli->uid);
+				time_t now = time(0);
+				auto builder = bsoncxx::builder::stream::document{};
+				bsoncxx::document::value doc_value = builder
+													 << "from" << cli->name
+													 << "message" << buff_out
+													 << "time" << ctime(&now)
+													 << finalize;
+				chat_room_messages.insert_one(doc_value.view());
 
-				str_trim_lf(buff_out, strlen(buff_out));
-				printf("%s \n", buff_out);
+				sprintf(buffer, "%s: %s\n", cli->name, buff_out);
+				send_message_to_all(buffer, cli->uid);
+				str_trim_lf(buffer, strlen(buffer));
+				printf("%s\n", buffer);
 			}
 		}
 		else if (receive == 0 || strcmp(buff_out, "exit") == 0)
@@ -204,8 +214,8 @@ void login_client(client_t *cli)
 			cout << "ERROR: -1\n";
 			leave_flag = 1;
 		}
-
 		bzero(buff_out, BUFFER_SZ);
+		bzero(buffer, LENGTH_MSG + 32);
 	}
 
 	cout << "end" << endl;
