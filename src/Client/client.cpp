@@ -61,7 +61,7 @@ void *recv_msg_handler(void *arg)
         int receive = recv(sockfd, message, LENGTH_MSG, 0);
         if (receive > 0)
         {
-            printf("%s", message);
+            cout << "\x1B[36m" << message << "\033[0m" << endl;
             str_overwrite_stdout();
         }
         else if (receive == 0)
@@ -78,16 +78,19 @@ void *passwordPrinting() {
     for(i=0;;)
     {
         a=getch();
-        if((a>='a'&&a<='z')||(a>='A'&&a<='Z')||(a>='0'&&a<='9'))
+        if((a>='a'&&a<='z')||(a>='A'&&a<='Z')||(a>='0'&&a<='9')||(a='@'))
         {
             password[i]=a;
             ++i;
             cout<<"*";
         }
-        if(a == ' ')
+        if(i != 0)
         {
-            break;
-        }
+            if(a == '\n')
+            {
+                break;
+            }
+        }        
     }
 }
 
@@ -200,6 +203,7 @@ void Client::clientLogin(int sockfd)
     else
     {
         cout << "\033[;34m Username or password is incorrect.. Enter again!!!   \033[0m\n";
+        sleep(5);
         clientLogin(sockfd);
     }
 }
@@ -237,10 +241,14 @@ void Client::clientRegister(int sockfd)
     cout << message;
 
     if (strcmp(message, "1") == 0)
+    {
         cout << "\033[;34m Registration Successful   \033[0m\n";
+        sleep(5);
+    }
     else
     {
         cout << "\033[;34m Unsuccessful Registration \033[0m\n";
+        sleep(5);
     }
 
     clientSelection();
@@ -268,6 +276,7 @@ void Client::clientSelection()
         break;
     default:
         cout << "\033[;34m Invalid Option \033[0m\n";
+        sleep(5);
         break;
     }
 }
