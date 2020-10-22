@@ -34,11 +34,12 @@ void send_message_to_all(char *s, int uid)
 		{
 			if (clients[i]->uid != uid)
 			{
-				if (write(clients[i]->sockfd, s, strlen(s)) < 0)
-				{
-					perror("ERROR: write to descriptor failed");
-					break;
-				}
+				if (clients[i]->chatroom_status)
+					if (write(clients[i]->sockfd, s, strlen(s)) < 0)
+					{
+						perror("ERROR: write to descriptor failed");
+						break;
+					}
 			}
 		}
 	}
@@ -160,6 +161,7 @@ void login_client(client_t *cli)
 	char buff_out[BUFFER_SZ];
 	char buffer[LENGTH_MSG + 32] = {};
 	int leave_flag = 0;
+	// cli->chatroom_status = false;
 	client_t *cli2;
 
 	cout << "\033[;33m Login is in process...   \033[0m\n";
@@ -186,9 +188,22 @@ void login_client(client_t *cli)
 			else
 			{
 				write(cli->sockfd, "1", strlen("1"));
-				sprintf(buff_out, "%s has joined\n", cli->name);
-				cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
-				send_message_to_all(buff_out, cli->uid);
+				recv(cli->sockfd, buff_out, 1, 0);
+				cout << "User chose: " << buff_out << endl;
+				// if(strcmp("1", buff_out) == 0)
+				// {
+
+				// }
+				// else
+				if (strcmp("2", buff_out) == 0)
+				{
+					cli->chatroom_status = true;
+					sprintf(buff_out, "%s has joined\n", cli->name);
+					cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
+					send_message_to_all(buff_out, cli->uid);
+				}
+				cout << cli->name << " chat status: " << cli->chatroom_status << endl;
+				cout << "User chose: " << buff_out << endl;
 			}
 		}
 		else
@@ -216,15 +231,23 @@ void login_client(client_t *cli)
 			{
 				time_t now = time(0);
 				auto builder = bsoncxx::builder::stream::document{};
-				bsoncxx::document::value doc_value = builder
-													 << "from" << cli->name
-													 << "message" << buff_out
-													 << "time" << ctime(&now)
-													 << finalize;
-				chat_room_messages.insert_one(doc_value.view());
-
 				sprintf(buffer, "%s: %s\n", cli->name, buff_out);
-				send_message_to_all(buffer, cli->uid);
+
+				if (cli->chatroom_status)
+				{
+					bsoncxx::document::value doc_value = builder
+														 << "from" << cli->name
+														 << "message" << buff_out
+														 << "time" << ctime(&now)
+														 << finalize;
+					chat_room_messages.insert_one(doc_value.view());
+
+					send_message_to_all(buffer, cli->uid);
+				}
+				else
+				{
+					// send_message_to_one(buffer, cli->uid, cli2->uid);
+				}
 				str_trim_lf(buffer, strlen(buffer));
 				printf("%s\n", buffer);
 			}
@@ -373,6 +396,7 @@ int main(int argc, char **argv)
 		client_t *cli = (client_t *)malloc(sizeof(client_t));
 		cli->sockfd = connfd;
 		cli->uid = uid++;
+		cli->chatroom_status = false;
 		array_add(cli);
 
 		pthread_t tid;

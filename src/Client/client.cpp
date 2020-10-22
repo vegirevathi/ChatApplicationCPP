@@ -151,12 +151,14 @@ void Client::chatSelection(int sockfd)
     switch (choice)
     {
     case 1:
+        send(sockfd, "1", 1, 0);
         cout << "\033[;34mEnter name of the person you want to chat \033[0m\n";
         cin >> name;
         // send(sockfd, name, strlen(name), 0);
         messageHandler(sockfd);
         break;
     case 2:
+        send(sockfd, "2", 1, 0);
         system("clear");
         cout << "\033[1;34m WELCOME TO GROUP CHAT \033[0m\n";
         messageHandler(sockfd);
@@ -195,12 +197,12 @@ void Client::clientLogin(int sockfd)
 
     send(sockfd, name, LENGTH_NAME, 0);
     send(sockfd, password, LENGTH_NAME, 0);
-    recv(sockfd, message, 50, 0);
+    recv(sockfd, message, 1, 0);
 
     if (strcmp(message, "1") == 0)
     {
         cout << "\033[;33m \n\nLogin Successful   \033[0m\n";
-        sleep(5);
+        sleep(1);
         chatSelection(sockfd);
     }
     else

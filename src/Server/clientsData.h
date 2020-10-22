@@ -12,6 +12,7 @@ typedef struct
 	int sockfd;
 	int uid;
 	char name[32];
+	bool chatroom_status;
 } client_t;
 
 client_t *clients[MAX_CLIENTS];
