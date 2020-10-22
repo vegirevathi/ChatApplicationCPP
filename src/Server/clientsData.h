@@ -6,13 +6,14 @@
 
 using namespace std;
 
-typedef struct
+typedef struct client_t
 {
 	struct sockaddr_in address;
 	int sockfd;
 	int uid;
 	char name[32];
 	bool chatroom_status;
+	client_t* cli2;
 } client_t;
 
 client_t *clients[MAX_CLIENTS];

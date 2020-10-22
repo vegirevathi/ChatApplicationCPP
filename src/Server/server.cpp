@@ -22,6 +22,7 @@ static int uid = 10;
 mongocxx::database db = client["Chat_data"];
 auto clients_db = db["clients"];
 auto chat_room_messages = db["chatroom"];
+auto client_to_client_messages = db["singleton"];
 
 /* Send message to all clients except sender */
 void send_message_to_all(char *s, int uid)
@@ -29,45 +30,23 @@ void send_message_to_all(char *s, int uid)
 	pthread_mutex_lock(&clients_mutex);
 
 	for (int i = 0; i < MAX_CLIENTS; ++i)
-	{
 		if (clients[i])
-		{
 			if (clients[i]->uid != uid)
-			{
 				if (clients[i]->chatroom_status)
 					if (write(clients[i]->sockfd, s, strlen(s)) < 0)
 					{
 						perror("ERROR: write to descriptor failed");
 						break;
 					}
-			}
-		}
-	}
 
 	pthread_mutex_unlock(&clients_mutex);
 }
 
-void send_message_to_particular_client(char *s, int uid)
+void send_message_to_one(char *s, client_t *cli)
 {
 	pthread_mutex_lock(&clients_mutex);
 
-	for (int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		if (clients[i])
-		{
-			if (clients[i]->uid != uid)
-			{
-				if (clients[i]->name == s)
-				{
-					if (write(clients[i]->sockfd, s, strlen(s)) < 0)
-					{
-						perror("ERROR: write to descriptor failed");
-						break;
-					}
-				}
-			}
-		}
-	}
+	write(cli->sockfd, s, strlen(s));
 
 	pthread_mutex_unlock(&clients_mutex);
 }
@@ -104,19 +83,13 @@ bool check_exist(client_t *cli)
 {
 	cout << "\033[;33m \nChecking Clients Database  \033[0m\n\n";
 	for (int i = 0; i < MAX_CLIENTS; ++i)
-	{
 		if (clients[i])
-		{
 			if (clients[i]->uid != cli->uid)
-			{
 				if (strcmp(cli->name, clients[i]->name) == 0)
 				{
 					cout << "\033[;32m Client is present  \033[0m\n\n";
 					return true;
 				}
-			}
-		}
-	}
 	return false;
 }
 
@@ -129,9 +102,7 @@ void register_client(int sockfd)
 
 	if ((recv(sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1) ||
 		(recv(sockfd, password, 32, 0) <= 0 || strlen(password) < 2 || strlen(password) >= 32 - 1))
-	{
 		cout << "\033[;31m \nDidnt enter the name or password   \033[0m\n";
-	}
 
 	else if (check_name(name))
 	{
@@ -154,6 +125,16 @@ void register_client(int sockfd)
 	}
 }
 
+client_t *client_for_single_chat(char *name)
+{
+	for (int i = 0; i < MAX_CLIENTS; i++)
+		if (clients[i])
+			if (!clients[i]->chatroom_status)
+				if (strcmp(clients[i]->name, name) == 0)
+					return clients[i];
+	return nullptr;
+}
+
 void login_client(client_t *cli)
 {
 	char name[32];
@@ -162,7 +143,7 @@ void login_client(client_t *cli)
 	char buffer[LENGTH_MSG + 32] = {};
 	int leave_flag = 0;
 	// cli->chatroom_status = false;
-	client_t *cli2;
+	client_t *cli2 = nullptr;
 
 	cout << "\033[;33m Login is in process...   \033[0m\n";
 
@@ -190,12 +171,25 @@ void login_client(client_t *cli)
 				write(cli->sockfd, "1", strlen("1"));
 				recv(cli->sockfd, buff_out, 1, 0);
 				cout << "User chose: " << buff_out << endl;
-				// if(strcmp("1", buff_out) == 0)
-				// {
-
-				// }
-				// else
-				if (strcmp("2", buff_out) == 0)
+				if (strcmp("1", buff_out) == 0)
+				{
+					recv(cli->sockfd, name, 32, 0);
+					cout << name << endl;
+					cli->cli2 = client_for_single_chat(name);
+					cout << "Print: " << cli->cli2->name << endl;
+					if (cli->cli2 == nullptr)
+					{
+						cout << "sdsd" << endl;
+						write(cli->sockfd, "0", 1);
+						leave_flag = 1;
+					}
+					else
+					{
+						cout << "dsds" << endl;
+						write(cli->sockfd, "1", 1);
+					}
+				}
+				else if (strcmp("2", buff_out) == 0)
 				{
 					cli->chatroom_status = true;
 					sprintf(buff_out, "%s has joined\n", cli->name);
@@ -246,7 +240,14 @@ void login_client(client_t *cli)
 				}
 				else
 				{
-					// send_message_to_one(buffer, cli->uid, cli2->uid);
+					bsoncxx::document::value doc_value = builder
+														 << "from" << cli->name
+														 << "to" << cli->cli2->name
+														 << "message" << buff_out
+														 << "time" << ctime(&now)
+														 << finalize;
+					client_to_client_messages.insert_one(doc_value.view());
+					send_message_to_one(buffer, cli->cli2);
 				}
 				str_trim_lf(buffer, strlen(buffer));
 				printf("%s\n", buffer);
@@ -256,7 +257,10 @@ void login_client(client_t *cli)
 		{
 			sprintf(buff_out, "%s has left\n", cli->name);
 			cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
-			send_message_to_all(buff_out, cli->uid);
+			if (cli->chatroom_status)
+				send_message_to_all(buff_out, cli->uid);
+			else
+				send_message_to_one(buff_out, cli->cli2);
 			leave_flag = 1;
 		}
 		else
@@ -397,6 +401,7 @@ int main(int argc, char **argv)
 		cli->sockfd = connfd;
 		cli->uid = uid++;
 		cli->chatroom_status = false;
+		cli->cli2 = nullptr;
 		array_add(cli);
 
 		pthread_t tid;

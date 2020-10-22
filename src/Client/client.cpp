@@ -75,8 +75,8 @@ void *passwordPrinting()
     char a;
     for (i = 0;;)
     {
-        a=getch();
-        if((a>='a'&&a<='z')||(a>='A'&&a<='Z')||(a>='0'&&a<='9'))
+        a = getch();
+        if ((a >= 'a' && a <= 'z') || (a >= 'A' && a <= 'Z') || (a >= '0' && a <= '9'))
         {
             password[i] = a;
             ++i;
@@ -140,6 +140,7 @@ int Client::messageHandler(int sockfd)
 void Client::chatSelection(int sockfd)
 {
     system("clear");
+    char msg[100];
     cout << "\033[1;35m  CHAT OPTIONS  \033[0m\n\n";
     cout << "\033[;34mEnter 1 to single chat \033[0m\n";
     cout << "\033[;34mEnter 2 to pool chat \033[0m\n";
@@ -154,8 +155,19 @@ void Client::chatSelection(int sockfd)
         send(sockfd, "1", 1, 0);
         cout << "\033[;34mEnter name of the person you want to chat \033[0m\n";
         cin >> name;
-        // send(sockfd, name, strlen(name), 0);
-        messageHandler(sockfd);
+        send(sockfd, name, 32, 0);
+        system("clear");
+        recv(sockfd, msg, strlen(msg), 0);
+        if (strcmp(msg, "1m") == 0)
+        {
+            cout << "\033[1;34m WELCOME TO CLIENT TO CLIENT CHAT \033[0m\n";
+            messageHandler(sockfd);
+        }
+        else
+        {
+            cout << "Connection Error";
+            catch_ctrl_c_and_exit(2);
+        }
         break;
     case 2:
         send(sockfd, "2", 1, 0);
