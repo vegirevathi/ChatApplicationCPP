@@ -21,6 +21,7 @@ volatile sig_atomic_t flag = 0;
 int sockfd = 0;
 char name[32];
 char password[10];
+int leave_flag = 0;
 
 void catch_ctrl_c_and_exit(int sig)
 {
@@ -58,7 +59,7 @@ void *recv_msg_handler(void *arg)
         int receive = recv(sockfd, message, LENGTH_MSG, 0);
         if (receive > 0)
         {
-            cout << "\x1B[36m" << message << "\033[0m" << endl;
+            cout << message << endl;
             str_overwrite_stdout();
         }
         else if (receive == 0)
@@ -152,21 +153,24 @@ void Client::chatSelection(int sockfd)
     switch (choice)
     {
     case 1:
+        system("clear");
         send(sockfd, "1", 1, 0);
         cout << "\033[;34mEnter name of the person you want to chat \033[0m\n";
         cin >> name;
         send(sockfd, name, 32, 0);
-        system("clear");
         recv(sockfd, msg, strlen(msg), 0);
         if (strcmp(msg, "1m") == 0)
         {
-            cout << "\033[1;34m WELCOME TO CLIENT TO CLIENT CHAT \033[0m\n";
+            system("clear");
+            cout << "\033[1;34m WELCOME TO PRIVATE CHAT \033[0m\n";
+            cout << "You are chatting with " << name << endl;
             messageHandler(sockfd);
         }
         else
         {
-            cout << "Connection Error";
-            catch_ctrl_c_and_exit(2);
+            cout << "\n\nEntered User must be either offline or not registered user" << endl;
+            sleep(2);
+            chatSelection(sockfd);
         }
         break;
     case 2:
@@ -219,7 +223,7 @@ void Client::clientLogin(int sockfd)
     }
     else
     {
-        cout << "\033[;34m Username or password is incorrect.. Enter again!!!   \033[0m\n";
+        cout << "\033[;34m\n\nUsername or password is incorrect.. Enter again!!!   \033[0m\n";
         sleep(5);
         clientLogin(sockfd);
     }

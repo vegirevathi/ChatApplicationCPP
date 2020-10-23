@@ -70,7 +70,6 @@ bool authenticate(char *name, char *password)
 																						 << finalize);
 
 	cout << "\033[;33m\nIn Authentication  \033[0m\n";
-	cout << name << "..." << password << endl;
 	if (maybe_result)
 	{
 		std::cout << bsoncxx::to_json(*maybe_result) << "\n";
@@ -81,7 +80,6 @@ bool authenticate(char *name, char *password)
 
 bool check_exist(client_t *cli)
 {
-	cout << "\033[;33m \nChecking Clients Database  \033[0m\n\n";
 	for (int i = 0; i < MAX_CLIENTS; ++i)
 		if (clients[i])
 			if (clients[i]->uid != cli->uid)
@@ -90,6 +88,7 @@ bool check_exist(client_t *cli)
 					cout << "\033[;32m Client is present  \033[0m\n\n";
 					return true;
 				}
+			
 	return false;
 }
 
@@ -111,7 +110,6 @@ void register_client(int sockfd)
 	}
 	else
 	{
-		//cout << strlen(password) << ", " << strlen(name) << endl;
 		auto builder = bsoncxx::builder::stream::document{};
 		bsoncxx::document::value doc_value = builder
 											 << "name" << name
@@ -142,23 +140,21 @@ void login_client(client_t *cli)
 	char buff_out[BUFFER_SZ];
 	char buffer[LENGTH_MSG + 32] = {};
 	int leave_flag = 0;
-	// cli->chatroom_status = false;
 	client_t *cli2 = nullptr;
 
-	cout << "\033[;33m Login is in process...   \033[0m\n";
+	cout << "\033[;33mLogin is in process...   \033[0m\n";
 
 	if ((recv(cli->sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1) ||
 		(recv(cli->sockfd, password, 32, 0) <= 0 || strlen(password) < 2 || strlen(password) >= 32 - 1))
 	{
-		cout << "\033[;31m Didnt enter the name or password \033[0m\n";
+		cout << "\033[;31mDidnt enter the name or password \033[0m\n";
 		leave_flag = 1;
 	}
 	else
 	{
-		cout << name << ", " << password << endl;
 		if (authenticate(name, password))
 		{
-			cout << "\033[;32m Authentication Successful  \033[0m\n";
+			cout << "\033[;32mAuthentication Successful  \033[0m\n";
 
 			strcpy(cli->name, name);
 			if (check_exist(cli))
@@ -170,39 +166,35 @@ void login_client(client_t *cli)
 			{
 				write(cli->sockfd, "1", strlen("1"));
 				recv(cli->sockfd, buff_out, 1, 0);
-				cout << "User chose: " << buff_out << endl;
 				if (strcmp("1", buff_out) == 0)
 				{
+					cli->chatroom_status = true;
+					sprintf(buff_out, "%s has joined\n", cli->name);
+
 					recv(cli->sockfd, name, 32, 0);
-					cout << name << endl;
 					cli->cli2 = client_for_single_chat(name);
-					cout << "Print: " << cli->cli2->name << endl;
 					if (cli->cli2 == nullptr)
 					{
-						cout << "sdsd" << endl;
 						write(cli->sockfd, "0", 1);
 						leave_flag = 1;
 					}
 					else
 					{
-						cout << "dsds" << endl;
 						write(cli->sockfd, "1", 1);
 					}
 				}
 				else if (strcmp("2", buff_out) == 0)
 				{
 					cli->chatroom_status = true;
-					sprintf(buff_out, "%s has joined\n", cli->name);
+					sprintf(buff_out, "\n\x1B[36m%s has joined\033[0m\n", cli->name);
 					cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
 					send_message_to_all(buff_out, cli->uid);
 				}
-				cout << cli->name << " chat status: " << cli->chatroom_status << endl;
-				cout << "User chose: " << buff_out << endl;
 			}
 		}
 		else
 		{
-			cout << "\033[;31m No Client Exists!!!   \033[0m\n";
+			cout << "\033[;31mNo Client Exists!!!   \033[0m\n";
 
 			write(cli->sockfd, "2", strlen("2"));
 			leave_flag = 1;
@@ -225,7 +217,7 @@ void login_client(client_t *cli)
 			{
 				time_t now = time(0);
 				auto builder = bsoncxx::builder::stream::document{};
-				sprintf(buffer, "%s: %s\n", cli->name, buff_out);
+				sprintf(buffer, "\x1B[33m%s : \033[0m%s", cli->name, buff_out);
 
 				if (cli->chatroom_status)
 				{
@@ -250,12 +242,11 @@ void login_client(client_t *cli)
 					send_message_to_one(buffer, cli->cli2);
 				}
 				str_trim_lf(buffer, strlen(buffer));
-				printf("%s\n", buffer);
 			}
 		}
 		else if (receive == 0 || strcmp(buff_out, "exit") == 0)
 		{
-			sprintf(buff_out, "%s has left\n", cli->name);
+			sprintf(buff_out, "\n\x1B[36m%s has left\033[0m\n", cli->name);
 			cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
 			if (cli->chatroom_status)
 				send_message_to_all(buff_out, cli->uid);
@@ -271,8 +262,6 @@ void login_client(client_t *cli)
 		bzero(buffer, LENGTH_MSG + 32);
 		bzero(buff_out, BUFFER_SZ);
 	}
-
-	cout << "end" << endl;
 }
 
 /* Handle all communication with the client */
@@ -289,8 +278,6 @@ void *handle_client(void *arg)
 	{
 		cout << "\033[;31m Invalid Credentials   \033[0m\n";
 	}
-
-	cout << option;
 
 	if (strcmp(option, "1") == 0)
 	{
@@ -382,14 +369,14 @@ int main(int argc, char **argv)
 	system("clear");
 	signal(SIGPIPE, SIG_IGN);
 
+	cout << "\033[1;35m WELCOME TO THE CHATROOM   \033[0m\n";
+
 	Server server;
 
 	server.creatingSocket();
 	server.settingSocket();
 	server.binding();
 	server.listening();
-
-	cout << "\033[1;35m WELCOME TO THE CHATROOM   \033[0m\n";
 
 	while (1)
 	{
