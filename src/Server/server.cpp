@@ -168,9 +168,6 @@ void login_client(client_t *cli)
 				recv(cli->sockfd, buff_out, 1, 0);
 				if (strcmp("1", buff_out) == 0)
 				{
-					cli->chatroom_status = true;
-					sprintf(buff_out, "%s has joined\n", cli->name);
-
 					recv(cli->sockfd, name, 32, 0);
 					cli->cli2 = client_for_single_chat(name);
 					if (cli->cli2 == nullptr)
