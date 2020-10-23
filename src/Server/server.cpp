@@ -10,6 +10,7 @@
 #include "clientsData.h"
 #include "server.h"
 #include "../Utils/proto.h"
+#include "../DBOperations/DBOperations.h"
 
 #define MAX_CLIENTS 100
 #define BUFFER_SZ 2048
@@ -19,10 +20,12 @@ using namespace std;
 static unsigned int cli_count = 0;
 static int uid = 10;
 
-mongocxx::database db = client["Chat_data"];
-auto clients_db = db["clients"];
-auto chat_room_messages = db["chatroom"];
-auto client_to_client_messages = db["singleton"];
+DBOperations db;
+
+// mongocxx::database db = client["Chat_data"];
+// auto clients_db = db["clients"];
+// auto chat_room_messages = db["chatroom"];
+// auto client_to_client_messages = db["singleton"];
 
 /* Send message to all clients except sender */
 void send_message_to_all(char *s, int uid)
@@ -51,32 +54,32 @@ void send_message_to_one(char *s, client_t *cli)
 	pthread_mutex_unlock(&clients_mutex);
 }
 
-bool check_name(char *name)
-{
-	bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result = clients_db.find_one(document{} << "name" << name << finalize);
-	if (maybe_result)
-	{
-		std::cout << bsoncxx::to_json(*maybe_result) << "\n";
-		return true;
-	}
-	return false;
-}
+// bool check_name(char *name)
+// {
+// 	bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result = clients_db.find_one(document{} << "name" << name << finalize);
+// 	if (maybe_result)
+// 	{
+// 		std::cout << bsoncxx::to_json(*maybe_result) << "\n";
+// 		return true;
+// 	}
+// 	return false;
+// }
 
-bool authenticate(char *name, char *password)
-{
-	bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result = clients_db.find_one(document{}
-																						 << "name" << name
-																						 << "password" << password
-																						 << finalize);
+// bool authenticate(char *name, char *password)
+// {
+// 	bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result = clients_db.find_one(document{}
+// 																						 << "name" << name
+// 																						 << "password" << password
+// 																						 << finalize);
 
-	cout << "\033[;33m\nIn Authentication  \033[0m\n";
-	if (maybe_result)
-	{
-		std::cout << bsoncxx::to_json(*maybe_result) << "\n";
-		return true;
-	}
-	return false;
-}
+// 	cout << "\033[;33m\nIn Authentication  \033[0m\n";
+// 	if (maybe_result)
+// 	{
+// 		std::cout << bsoncxx::to_json(*maybe_result) << "\n";
+// 		return true;
+// 	}
+// 	return false;
+// }
 
 bool check_exist(client_t *cli)
 {
@@ -103,21 +106,24 @@ void register_client(int sockfd)
 		(recv(sockfd, password, 32, 0) <= 0 || strlen(password) < 2 || strlen(password) >= 32 - 1))
 		cout << "\033[;31m \nDidnt enter the name or password   \033[0m\n";
 
-	else if (check_name(name))
+	else if (db.check_name(name))
 	{
 		cout << "\033[;31m \nClient is already registered!!!   \033[0m\n";
 		write(sockfd, "0", strlen("0"));
 	}
 	else
 	{
-		auto builder = bsoncxx::builder::stream::document{};
-		bsoncxx::document::value doc_value = builder
-											 << "name" << name
-											 << "password" << password
-											 << "status"
-											 << "offline"
-											 << finalize;
-		clients_db.insert_one(doc_value.view());
+		// auto builder = bsoncxx::builder::stream::document{};
+		// bsoncxx::document::value doc_value = builder
+		// 									 << "name" << name
+		// 									 << "password" << password
+		// 									 << "status"
+		// 									 << "offline"
+		// 									 << finalize;
+		// clients_db.insert_one(doc_value.view());
+		// write(sockfd, "1", strlen("1"));
+		// cout << "Client added successfully:" << name << endl;
+		db.registerClient(name, password);
 		write(sockfd, "1", strlen("1"));
 		cout << "Client added successfully:" << name << endl;
 	}
@@ -152,7 +158,7 @@ void login_client(client_t *cli)
 	}
 	else
 	{
-		if (authenticate(name, password))
+		if (db.authenticate(name, password))
 		{
 			cout << "\033[;32mAuthentication Successful  \033[0m\n";
 
@@ -212,30 +218,34 @@ void login_client(client_t *cli)
 		{
 			if (strlen(buff_out) > 0)
 			{
-				time_t now = time(0);
-				auto builder = bsoncxx::builder::stream::document{};
+				// time_t now = time(0);
+				// auto builder = bsoncxx::builder::stream::document{};
 				sprintf(buffer, "\x1B[33m%s : \033[0m%s", cli->name, buff_out);
 
 				if (cli->chatroom_status)
 				{
-					bsoncxx::document::value doc_value = builder
-														 << "from" << cli->name
-														 << "message" << buff_out
-														 << "time" << ctime(&now)
-														 << finalize;
-					chat_room_messages.insert_one(doc_value.view());
+					// bsoncxx::document::value doc_value = builder
+					// 									 << "from" << cli->name
+					// 									 << "message" << buff_out
+					// 									 << "time" << ctime(&now)
+					// 									 << finalize;
+					// chat_room_messages.insert_one(doc_value.view());
+
+					db.storeGroupMessages(cli->name, buff_out);
 
 					send_message_to_all(buffer, cli->uid);
 				}
 				else
 				{
-					bsoncxx::document::value doc_value = builder
-														 << "from" << cli->name
-														 << "to" << cli->cli2->name
-														 << "message" << buff_out
-														 << "time" << ctime(&now)
-														 << finalize;
-					client_to_client_messages.insert_one(doc_value.view());
+					// bsoncxx::document::value doc_value = builder
+					// 									 << "from" << cli->name
+					// 									 << "to" << cli->cli2->name
+					// 									 << "message" << buff_out
+					// 									 << "time" << ctime(&now)
+					// 									 << finalize;
+					// client_to_client_messages.insert_one(doc_value.view());
+
+					db.storePrivateMessages(cli->name, cli->cli2->name, buff_out);
 					send_message_to_one(buffer, cli->cli2);
 				}
 				str_trim_lf(buffer, strlen(buffer));
