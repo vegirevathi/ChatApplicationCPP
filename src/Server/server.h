@@ -1,9 +1,22 @@
+#pragma once
 #include <iostream>
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <cstdint>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "../DBOperations/DBOperations.h"
+//#include "clientsData.h"
+#include "../Utils/string.h"
+#include "../Utils/proto.h"
+
+#define MAX_CLIENTS 100
+#define BUFFER_SZ 2048
+
 // #include <vector>
 // #include <bsoncxx/json.hpp>
 // #include <mongocxx/client.hpp>
@@ -31,10 +44,19 @@ class Server
     char buffer[1024];
     int addrlen = sizeof(address);
 
+    DBOperations db;
+
 public:
     void creatingSocket();
     void settingSocket();
     void binding();
     void listening();
     int accepting();
+
+    void send_message_to_all(char *, int);
+    void send_message_to_one(char *, client_t *);
+    bool check_exist(client_t *);
+    void register_client(int);
+    client_t *client_for_single_chat(char *);
+    void login_client(client_t *);
 };
