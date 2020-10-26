@@ -9,10 +9,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <vector>
 #include "../Utils/proto.h"
 #include "client.h"
 #include "../Utils/string.h"
-#include "../Utils/getchMethod.h"
 
 #define PORT 8000
 
@@ -20,7 +20,7 @@
 volatile sig_atomic_t flag = 0;
 int sockfd = 0;
 char name[32];
-char password[10];
+char password[15];
 int leave_flag = 0;
 
 void catch_ctrl_c_and_exit(int sig)
@@ -38,14 +38,11 @@ void *send_msg_handler(void *arg)
         fgets(message, LENGTH_MSG, stdin);
         str_trim_lf(message, LENGTH_MSG);
 
-        if (strcmp(message, "$$exit") == 0)
+        if (strcmp(message, "exit") == 0)
         {
             break;
         }
-        else
-        {
-            send(sockfd, message, strlen(message), 0);
-        }
+        send(sockfd, message, strlen(message), 0);
         bzero(message, LENGTH_MSG);
     }
     catch_ctrl_c_and_exit(2);
@@ -67,29 +64,6 @@ void *recv_msg_handler(void *arg)
             break;
         }
         memset(message, 0, sizeof(message));
-    }
-}
-
-void *passwordPrinting()
-{
-    int i = 0;
-    char a;
-    for (i = 0;;)
-    {
-        a = getch();
-        if ((a >= 'a' && a <= 'z') || (a >= 'A' && a <= 'Z') || (a >= '0' && a <= '9'))
-        {
-            password[i] = a;
-            ++i;
-            cout << "*";
-        }
-        if (i != 0)
-        {
-            if (a == '\n')
-            {
-                break;
-            }
-        }
     }
 }
 
@@ -142,6 +116,9 @@ void Client::chatSelection(int sockfd)
 {
     system("clear");
     char msg[100] = {};
+    char buffer[100] = {};
+    list<char *> online_clients;
+
     cout << "\033[1;35m  CHAT OPTIONS  \033[0m\n\n";
     cout << "\033[;34mEnter 1 to single chat \033[0m\n";
     cout << "\033[;34mEnter 2 to pool chat \033[0m\n";
@@ -156,11 +133,18 @@ void Client::chatSelection(int sockfd)
     case 1:
         system("clear");
         send(sockfd, "1", 1, 0);
+
+        // recv(sockfd, buffer, strlen(buffer), 0);
+        // cout << buffer << endl;
+        // split(buffer, ",");
+
         cout << "\033[;34mEnter name of the person you want to chat \033[0m\n";
         cin >> name;
+
         send(sockfd, name, 32, 0);
         recv(sockfd, msg, 1, 0);
         cout << msg << endl;
+
         if (strcmp(msg, "1") == 0)
         {
             system("clear");
@@ -207,7 +191,7 @@ void Client::clientLogin(int sockfd)
     }
 
     cout << "\033[;34mPlease Enter Your Password :   \033[0m\n";
-    passwordPrinting();
+    passwordPrinting(password);
 
     if (strlen(password) > 10 || strlen(password) < 5)
     {
@@ -250,7 +234,7 @@ void Client::clientRegister(int sockfd)
     }
 
     cout << "\033[;34mPlease Create your Password :   \033[0m\n";
-    passwordPrinting();
+    passwordPrinting(password);
 
     if (strlen(password) > 10 || strlen(password) < 5)
     {

@@ -40,6 +40,18 @@ void send_message_to_all(char *s, int uid)
 	pthread_mutex_unlock(&clients_mutex);
 }
 
+char *get_online_clients()
+{
+	char buff[100] = {};
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+		if (clients[i])
+		{
+			strcat(buff, clients[i]->name);
+			strcat(buff, ",");
+		}
+	return buff;
+}
+
 void send_message_to_one(char *s, client_t *cli)
 {
 	pthread_mutex_lock(&clients_mutex);
@@ -99,6 +111,39 @@ client_t *client_for_single_chat(char *name)
 	return nullptr;
 }
 
+void chatmode_selection(client_t *cli, char *buff_out)
+{
+	char name[32];
+	char buffer[100];
+
+	recv(cli->sockfd, buff_out, 1, 0);
+	if (strcmp("1", buff_out) == 0)
+	{
+		// buff_out = get_online_clients();
+		// cout << buff_out << endl;
+		// send(cli->sockfd, buff_out, strlen(buff_out), 0);
+		recv(cli->sockfd, name, 32, 0);
+		cli->cli2 = client_for_single_chat(name);
+
+		if (cli->cli2 == nullptr)
+		{
+			write(cli->sockfd, "0", 1);
+		}
+		else
+		{
+			sprintf(buff_out, "1");
+			write(cli->sockfd, buff_out, strlen(buff_out));
+		}
+	}
+	else if (strcmp("2", buff_out) == 0)
+	{
+		cli->chatroom_status = true;
+		sprintf(buff_out, "\n\x1B[36m%s has joined\033[0m\n", cli->name);
+		cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
+		send_message_to_all(buff_out, cli->uid);
+	}
+}
+
 void message_handler(client_t *cli, char *buffer, char *buff_out, int leave_flag)
 {
 	while (1)
@@ -128,26 +173,11 @@ void message_handler(client_t *cli, char *buffer, char *buff_out, int leave_flag
 				str_trim_lf(buffer, strlen(buffer));
 			}
 		}
-		else if (receive == 0)
+		else if (receive == 0 || strcmp(buff_out, "exit") == 0)
 		{
 			sprintf(buff_out, "\n\x1B[36m%s has left\033[0m\n", cli->name);
 			cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
 			leave_flag = 1;
-		}
-		else if (strcmp(buff_out, "$$exit") == 0)
-		{
-			sprintf(buff_out, "\n\x1B[36m%s has left\033[0m\n", cli->name);
-			cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
-			if (cli->chatroom_status)
-			{
-				send_message_to_all(buff_out, cli->uid);
-				cli->chatroom_status = false;
-			}
-			else
-			{
-				send_message_to_one(buff_out, cli->cli2);
-				cli->cli2 = nullptr;
-			} // leave_flag = 1;
 		}
 		else
 		{
@@ -156,34 +186,6 @@ void message_handler(client_t *cli, char *buffer, char *buff_out, int leave_flag
 		}
 		bzero(buffer, LENGTH_MSG + 32);
 		bzero(buff_out, BUFFER_SZ);
-	}
-}
-
-void chatmode_selection(client_t* cli, char* buff_out)
-{
-	char name[32];
-
-	recv(cli->sockfd, buff_out, 1, 0);
-	if (strcmp("1", buff_out) == 0)
-	{
-		recv(cli->sockfd, name, 32, 0);
-		cli->cli2 = client_for_single_chat(name);
-		if (cli->cli2 == nullptr)
-		{
-			write(cli->sockfd, "0", 1);
-		}
-		else
-		{
-			sprintf(buff_out, "1");
-			write(cli->sockfd, buff_out, strlen(buff_out));
-		}
-	}
-	else if (strcmp("2", buff_out) == 0)
-	{
-		cli->chatroom_status = true;
-		sprintf(buff_out, "\n\x1B[36m%s has joined\033[0m\n", cli->name);
-		cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
-		send_message_to_all(buff_out, cli->uid);
 	}
 }
 
@@ -227,28 +229,6 @@ bool login_client(client_t *cli)
 			{
 				write(cli->sockfd, "1", strlen("1"));
 				chatmode_selection(cli, buff_out);
-				// recv(cli->sockfd, buff_out, 1, 0);
-				// if (strcmp("1", buff_out) == 0)
-				// {
-				// 	recv(cli->sockfd, name, 32, 0);
-				// 	cli->cli2 = client_for_single_chat(name);
-				// 	if (cli->cli2 == nullptr)
-				// 	{
-				// 		write(cli->sockfd, "0", 1);
-				// 	}
-				// 	else
-				// 	{
-				// 		sprintf(buff_out, "1");
-				// 		write(cli->sockfd, buff_out, strlen(buff_out));
-				// 	}
-				// }
-				// else if (strcmp("2", buff_out) == 0)
-				// {
-				// 	cli->chatroom_status = true;
-				// 	sprintf(buff_out, "\n\x1B[36m%s has joined\033[0m\n", cli->name);
-				// 	cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
-				// 	send_message_to_all(buff_out, cli->uid);
-				// }
 				return true;
 			}
 		}
