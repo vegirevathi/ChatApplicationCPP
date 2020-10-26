@@ -38,7 +38,7 @@ void *send_msg_handler(void *arg)
         fgets(message, LENGTH_MSG, stdin);
         str_trim_lf(message, LENGTH_MSG);
 
-        if (strcmp(message, "exit") == 0)
+        if (strcmp(message, "$$exit") == 0)
         {
             break;
         }
@@ -141,13 +141,14 @@ int Client::messageHandler(int sockfd)
 void Client::chatSelection(int sockfd)
 {
     system("clear");
-    char msg[100];
+    char msg[100] = {};
     cout << "\033[1;35m  CHAT OPTIONS  \033[0m\n\n";
     cout << "\033[;34mEnter 1 to single chat \033[0m\n";
     cout << "\033[;34mEnter 2 to pool chat \033[0m\n";
+    cout << "\033[;34mAny Other to Exit   \033[0m\n\n";
 
     int choice;
-    cout << "\033[;34mEnter your choice \033[0m\n";
+    cout << "\033[;34mEnter your choice: \033[0m\n";
     cin >> choice;
     cout << endl;
     switch (choice)
@@ -158,8 +159,9 @@ void Client::chatSelection(int sockfd)
         cout << "\033[;34mEnter name of the person you want to chat \033[0m\n";
         cin >> name;
         send(sockfd, name, 32, 0);
-        recv(sockfd, msg, strlen(msg), 0);
-        if (strcmp(msg, "1m") == 0)
+        recv(sockfd, msg, 1, 0);
+        cout << msg << endl;
+        if (strcmp(msg, "1") == 0)
         {
             system("clear");
             cout << "\033[1;34m WELCOME TO PRIVATE CHAT \033[0m\n";
@@ -180,7 +182,9 @@ void Client::chatSelection(int sockfd)
         messageHandler(sockfd);
         break;
     default:
-        cout << "\033[;34m Invalid Option \033[0m\n";
+        cout << "\033[;34m Exit Success \033[0m\n";
+        sleep(2);
+        catch_ctrl_c_and_exit(2);
         break;
     }
 }
@@ -224,7 +228,6 @@ void Client::clientLogin(int sockfd)
     else
     {
         cout << "\033[;34m\n\nUsername or password is incorrect.. Enter again!!!   \033[0m\n";
-        sleep(5);
         clientLogin(sockfd);
     }
 }
@@ -269,8 +272,7 @@ void Client::clientRegister(int sockfd)
         cout << "\033[;31m \n\nUnsuccessful Registration \033[0m\n";
         sleep(5);
     }
-
-    clientSelection();
+    catch_ctrl_c_and_exit(2);
 }
 
 void Client::clientSelection()
@@ -278,11 +280,12 @@ void Client::clientSelection()
     system("clear");
     cout << "\033[1;35m  DASHBOARD  \033[0m\n\n";
 
-    cout << "\033[;34mEnter 1 to register   \033[0m\n\n";
-    cout << "\033[;34mEnter 2 to login   \033[0m\n\n";
+    cout << "\033[;34mEnter 1 to register   \033[0m\n";
+    cout << "\033[;34mEnter 2 to login   \033[0m\n";
+    cout << "\033[;34mAny Other to Exit   \033[0m\n";
 
     int choice;
-    cout << "\033[;34mEnter your choice \033[0m\n";
+    cout << "\033[;34mEnter your choice: \033[0m";
     cin >> choice;
     cout << endl;
     switch (choice)
@@ -294,8 +297,10 @@ void Client::clientSelection()
         clientLogin(sockfd);
         break;
     default:
-        cout << "\033[;34m Invalid Option \033[0m\n";
-        sleep(5);
+        // cout << "\033[;34m Invalid Option \033[0m\n";
+        cout << "\033[;34m Exit Success \033[0m\n";
+        sleep(2);
+        catch_ctrl_c_and_exit(2);
         break;
     }
 }
