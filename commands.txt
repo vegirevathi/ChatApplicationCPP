@@ -1,3 +1,4 @@
 c++ --std=c++17 src/Utils/string.cpp src/Client/client.cpp -o client.out -pthread
 
-c++ --std=c++17 src/Utils/string.cpp src/DBOperations/DBOperations.cpp src/Server/server.cpp -o server.out -pthread $(pkg-config --cflags --libs libmongocxx)
+c++ --std=c++17 src/Server/controller/serverController.cpp src/Utils/string.cpp src/Server/DBOperations/DBOperations.cpp src/Server/model/server.cpp src/Server/model/serverOperations.cpp -o server.out -pthread $(pkg-config --cflags --libs libmongocxx)
+
