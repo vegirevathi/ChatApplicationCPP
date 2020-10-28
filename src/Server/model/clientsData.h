@@ -1,4 +1,6 @@
-#pragma once
+#ifndef CLIENT
+#define CLIENT
+
 #include <netinet/in.h>
 #include <iostream>
 
@@ -56,3 +58,5 @@ void array_remove(int uid)
 
 	pthread_mutex_unlock(&clients_mutex);
 }
+
+#endif
