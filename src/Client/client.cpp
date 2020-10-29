@@ -122,6 +122,7 @@ void Client::chatSelection(int sockfd)
     cout << "\033[1;35m  CHAT OPTIONS  \033[0m\n\n";
     cout << "\033[;34mEnter 1 to single chat \033[0m\n";
     cout << "\033[;34mEnter 2 to pool chat \033[0m\n";
+    //cout << "\033[;34mEnter 3 to pool chat \033[0m\n";
     cout << "\033[;34mAny Other to Exit   \033[0m\n\n";
 
     int choice;
@@ -211,6 +212,7 @@ void Client::clientLogin(int sockfd)
     else
     {
         cout << "\033[;34m\n\nUsername or password is incorrect.. Enter again!!!   \033[0m\n";
+        sleep(1);
         clientLogin(sockfd);
     }
 }
