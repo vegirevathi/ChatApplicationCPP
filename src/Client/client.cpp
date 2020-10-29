@@ -134,9 +134,8 @@ void Client::chatSelection(int sockfd)
         system("clear");
         send(sockfd, "1", 1, 0);
 
-        // recv(sockfd, buffer, strlen(buffer), 0);
-        // cout << buffer << endl;
-        // split(buffer, ",");
+        recv(sockfd, buffer, 100, 0);
+        cout << "Online Clients: \n"<< buffer << endl;
 
         cout << "\033[;34mEnter name of the person you want to chat \033[0m\n";
         cin >> name;

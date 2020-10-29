@@ -40,16 +40,21 @@ void send_message_to_all(char *s, int uid)
 	pthread_mutex_unlock(&clients_mutex);
 }
 
-char *get_online_clients()
+void get_online_clients(client_t *cli)
 {
 	char buff[100] = {};
+	char buffer[100] = {};
+	cout << "Came here" << endl;
 	for (int i = 0; i < MAX_CLIENTS; ++i)
 		if (clients[i])
-		{
-			strcat(buff, clients[i]->name);
-			strcat(buff, ",");
-		}
-	return buff;
+			if (clients[i]->name != cli->name)
+			{
+				strcat(buff, clients[i]->name);
+				strcat(buff, "\n");
+			}
+	sprintf(buffer, "\033[;33m%s\033[0m", buff);
+	cout << buffer << endl;
+	write(cli->sockfd, buffer, 100);
 }
 
 void send_message_to_one(char *s, client_t *cli)
@@ -114,13 +119,13 @@ client_t *client_for_single_chat(char *name)
 void chatmode_selection(client_t *cli, char *buff_out)
 {
 	char name[32];
-	char buffer[100];
+	char *buffer;
 
 	recv(cli->sockfd, buff_out, 1, 0);
 	if (strcmp("1", buff_out) == 0)
 	{
-		// buff_out = get_online_clients();
-		// cout << buff_out << endl;
+		get_online_clients(cli);
+		// cout << buffer << endl;
 		// send(cli->sockfd, buff_out, strlen(buff_out), 0);
 		recv(cli->sockfd, name, 32, 0);
 		cli->cli2 = client_for_single_chat(name);
