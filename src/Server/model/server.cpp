@@ -152,9 +152,9 @@ void ServerOperations::chat_mode_selection(client_t *cli)
 		cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
 		op.send_message_to_all(buff_out, cli->uid);
 	}
-	else if (strcmp("3", buff_out) == 0)
+	else
 	{
-		// recv(cli->sockfd);
+		// leave_flag = 1;
 	}
 }
 
@@ -271,7 +271,9 @@ void *handle_client(void *arg)
 	client_t *cli = (client_t *)arg;
 	if (recv(cli->sockfd, option, 1, 0) <= 0)
 	{
-		cout << "\033[;31m Invalid Credentials   \033[0m\n";
+		cout << "\033[;31m Client exited  \033[0m\n";
+		leave_flag = 1;
+		op.message_handling(cli, leave_flag);
 	}
 
 	if (strcmp(option, "1") == 0)

@@ -121,7 +121,8 @@ void Client::chatSelection(int sockfd)
     cout << "\033[1;35m  CHAT OPTIONS  \033[0m\n\n";
     cout << "\033[;34mEnter 1 to single chat \033[0m\n";
     cout << "\033[;34mEnter 2 to pool chat \033[0m\n";
-    cout << "\033[;34mEnter 3 to view history with user \033[0m\n";
+    // cout << "\033[;34mEnter 3 to view history with user \033[0m\n";
+    cout << "\033[;34mEnter any other to exit \033[0m\n";
 
     int choice;
     cout << "\033[;34mEnter your choice \033[0m\n";
@@ -164,14 +165,15 @@ void Client::chatSelection(int sockfd)
         cout << "\033[1;34m WELCOME TO GROUP CHAT \033[0m\n";
         messageHandler(sockfd);
         break;
-    case 3:
-        cout << "\033[;34mEnter name of the person you want to see history with \033[0m\n";
-        cin >> name;
-        send(sockfd, name, 32, 0);
-        recv(sockfd, msg, 1000, 0);
-        cout << msg << endl;
+    // case 3:
+    //     cout << "\033[;34mEnter name of the person you want to see history with \033[0m\n";
+    //     cin >> name;
+    //     send(sockfd, name, 32, 0);
+    //     recv(sockfd, msg, 1000, 0);
+    //     cout << msg << endl;
     default:
-        cout << "\033[;34m Invalid Option \033[0m\n";
+        cout << "\033[;34m Exit Successful \033[0m\n";
+        exit(0);
         break;
     }
 }
@@ -271,6 +273,7 @@ void Client::clientSelection()
 
     cout << "\033[;34mEnter 1 to register   \033[0m\n\n";
     cout << "\033[;34mEnter 2 to login   \033[0m\n\n";
+    cout << "\033[;34mEnter any other to exit \033[0m\n";
 
     int choice;
     cout << "\033[;34mEnter your choice \033[0m\n";
@@ -285,8 +288,8 @@ void Client::clientSelection()
         clientLogin(sockfd);
         break;
     default:
-        cout << "\033[;34m Invalid Option \033[0m\n";
-        sleep(5);
+        cout << "\033[;34m Exit Successful \033[0m\n";
+        exit(0);
         break;
     }
 }
