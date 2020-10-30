@@ -141,7 +141,6 @@ void ServerOperations::chat_mode_selection(client_t *cli)
 		}
 		else
 		{
-			// bzero(buffer, LENGTH_MSG + 32);
 			sprintf(buff_out, "1");
 			write(cli->sockfd, buff_out, strlen(buff_out));
 		}
@@ -152,6 +151,10 @@ void ServerOperations::chat_mode_selection(client_t *cli)
 		sprintf(buff_out, "\n\x1B[36m%s has joined\033[0m\n", cli->name);
 		cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
 		op.send_message_to_all(buff_out, cli->uid);
+	}
+	else if (strcmp("3", buff_out) == 0)
+	{
+		// recv(cli->sockfd);
 	}
 }
 
@@ -207,8 +210,13 @@ void ServerOperations::select_receivers(client_t *cli, char *buff_out)
 	}
 	else
 	{
-		db.storePrivateMessages(cli->name, cli->cli2->name, buff_out);
-		op.send_message_to_one(buffer, cli->cli2);
+		if (cli->cli2->cli2 == cli)
+		{
+			db.storePrivateMessages(cli->name, cli->cli2->name, buff_out);
+			op.send_message_to_one(buffer, cli->cli2);
+		}
+		else
+			op.send_message_to_one("User not connected", cli);
 	}
 	str_trim_lf(buffer, strlen(buffer));
 }

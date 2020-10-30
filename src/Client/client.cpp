@@ -117,10 +117,11 @@ int Client::messageHandler(int sockfd)
 void Client::chatSelection(int sockfd)
 {
     system("clear");
-    char msg[100] = {};
+    char msg[1000] = {};
     cout << "\033[1;35m  CHAT OPTIONS  \033[0m\n\n";
     cout << "\033[;34mEnter 1 to single chat \033[0m\n";
     cout << "\033[;34mEnter 2 to pool chat \033[0m\n";
+    cout << "\033[;34mEnter 3 to view history with user \033[0m\n";
 
     int choice;
     cout << "\033[;34mEnter your choice \033[0m\n";
@@ -133,7 +134,8 @@ void Client::chatSelection(int sockfd)
         send(sockfd, "1", 1, 0);
 
         recv(sockfd, buffer, 100, 0);
-        cout << "Online Clients: \n"<< buffer << endl;
+        cout << "Online Clients: \n"
+             << buffer << endl;
 
         cout << "\033[;34mEnter name of the person you want to chat \033[0m\n";
         cin >> name;
@@ -149,7 +151,6 @@ void Client::chatSelection(int sockfd)
             cout << "You are chatting with " << name << endl;
             messageHandler(sockfd);
         }
-
         else
         {
             cout << "\n\nEntered User must be either offline or not registered user" << endl;
@@ -163,6 +164,12 @@ void Client::chatSelection(int sockfd)
         cout << "\033[1;34m WELCOME TO GROUP CHAT \033[0m\n";
         messageHandler(sockfd);
         break;
+    case 3:
+        cout << "\033[;34mEnter name of the person you want to see history with \033[0m\n";
+        cin >> name;
+        send(sockfd, name, 32, 0);
+        recv(sockfd, msg, 1000, 0);
+        cout << msg << endl;
     default:
         cout << "\033[;34m Invalid Option \033[0m\n";
         break;

@@ -29,5 +29,5 @@ class DBOperations
     void registerClient(char *, char *);
     void storeGroupMessages(char *, char*);
     void storePrivateMessages(char *, char *, char*);
-
+    
 };
