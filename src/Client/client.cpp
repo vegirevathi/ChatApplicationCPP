@@ -12,7 +12,6 @@
 #include "../Utils/proto.h"
 #include "client.h"
 #include "../Utils/string.h"
-#include "../Utils/getchMethod.h"
 
 #define PORT 8000
 
@@ -67,29 +66,6 @@ void *recv_msg_handler(void *arg)
             break;
         }
         memset(message, 0, sizeof(message));
-    }
-}
-
-void *passwordPrinting()
-{
-    int i = 0;
-    char a;
-    for (i = 0;;)
-    {
-        a = getch();
-        if ((a >= 'a' && a <= 'z') || (a >= 'A' && a <= 'Z') || (a >= '0' && a <= '9'))
-        {
-            password[i] = a;
-            ++i;
-            cout << "*";
-        }
-        if (i != 0)
-        {
-            if (a == '\n')
-            {
-                break;
-            }
-        }
     }
 }
 
@@ -155,10 +131,16 @@ void Client::chatSelection(int sockfd)
     case 1:
         system("clear");
         send(sockfd, "1", 1, 0);
+
+        recv(sockfd, buffer, strlen(buffer), 0);
+        cout << "Online Clients: \n"<< buffer << endl;
+
         cout << "\033[;34mEnter name of the person you want to chat \033[0m\n";
         cin >> name;
+
         send(sockfd, name, 32, 0);
         recv(sockfd, msg, strlen(msg), 0);
+
         if (strcmp(msg, "1m") == 0)
         {
             system("clear");
@@ -166,6 +148,7 @@ void Client::chatSelection(int sockfd)
             cout << "You are chatting with " << name << endl;
             messageHandler(sockfd);
         }
+
         else
         {
             cout << "\n\nEntered User must be either offline or not registered user" << endl;
@@ -203,7 +186,7 @@ void Client::clientLogin(int sockfd)
     }
 
     cout << "\033[;34mPlease Enter Your Password :   \033[0m\n";
-    passwordPrinting();
+    passwordPrinting(password);
 
     if (strlen(password) > 10 || strlen(password) < 5)
     {
@@ -224,7 +207,7 @@ void Client::clientLogin(int sockfd)
     else
     {
         cout << "\033[;34m\n\nUsername or password is incorrect.. Enter again!!!   \033[0m\n";
-        sleep(5);
+        sleep(1);
         clientLogin(sockfd);
     }
 }
@@ -247,7 +230,7 @@ void Client::clientRegister(int sockfd)
     }
 
     cout << "\033[;34mPlease Create your Password :   \033[0m\n";
-    passwordPrinting();
+    passwordPrinting(password);
 
     if (strlen(password) > 10 || strlen(password) < 5)
     {
@@ -262,12 +245,12 @@ void Client::clientRegister(int sockfd)
     if (strcmp(message, "1") == 0)
     {
         cout << "\033[;33m \n\nRegistration Successful   \033[0m\n";
-        sleep(5);
+        sleep(2);
     }
     else
     {
         cout << "\033[;31m \n\nUnsuccessful Registration \033[0m\n";
-        sleep(5);
+        sleep(2);
     }
 
     clientSelection();

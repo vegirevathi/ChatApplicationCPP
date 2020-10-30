@@ -63,7 +63,24 @@ bool ServerOperations::check_exist(client_t *cli)
 	return false;
 }
 
-void ServerOperations::register_client(int sockfd)
+void ServerOperations::get_online_clients(client_t *cli)
+{
+	char buff[100] = {};
+	char buffer[100] = {};
+	cout << "Came here" << endl;
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+
+		if (clients[i]->name != cli->name)
+		{
+			strcat(buff, clients[i]->name);
+			strcat(buff, "\n");
+		}
+	sprintf(buffer, "\033[;33m%s\033[0m", buff);
+	cout << buffer << endl;
+	write(cli->sockfd, buffer, strlen(buffer));
+}
+
+bool ServerOperations::register_client(int sockfd)
 {
 	char name[32];
 	char password[20];
@@ -72,18 +89,23 @@ void ServerOperations::register_client(int sockfd)
 
 	if ((recv(sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1) ||
 		(recv(sockfd, password, 32, 0) <= 0 || strlen(password) < 2 || strlen(password) >= 32 - 1))
+	{
 		cout << "\033[;31m \nDidnt enter the name or password   \033[0m\n";
+		return false;
+	}
 
 	else if (db.check_name(name))
 	{
 		cout << "\033[;31m \nClient is already registered!!!   \033[0m\n";
 		write(sockfd, "0", strlen("0"));
+		return false;
 	}
 	else
 	{
 		db.registerClient(name, password);
 		write(sockfd, "1", strlen("1"));
 		cout << "Client added successfully:" << name << endl;
+		return true;
 	}
 }
 
@@ -97,44 +119,37 @@ client_t* ServerOperations::client_for_single_chat(char *name)
 	return nullptr;
 }
 
-void ServerOperations::authentication(char *name, char *password, client_t *cli)
+void ServerOperations::chat_mode_selection(client_t *cli)
 {
-	strcpy(cli->name, name);
-	if (op.check_exist(cli))
+	char name[32];
+	char *buffer;
+	recv(cli->sockfd, buff_out, 1, 0);
+	if (strcmp("1", buff_out) == 0)
 	{
-		write(cli->sockfd, "0", strlen("0"));
-		leave_flag = 1;
+		get_online_clients(cli);
+		recv(cli->sockfd, name, 32, 0);
+
+		cli->cli2 = op.client_for_single_chat(name);
+		cout << "Private room members: " << cli->cli2->name << endl;
+		if (cli->cli2 == nullptr)
+		{
+			write(cli->sockfd, "0", 1);		
+		}
+		else
+		{
+			write(cli->sockfd, "1", 1);
+		}
 	}
-	else
+	else if (strcmp("2", buff_out) == 0)
 	{
-		write(cli->sockfd, "1", strlen("1"));
-		recv(cli->sockfd, buff_out, 1, 0);
-		if (strcmp("1", buff_out) == 0)
-		{
-			recv(cli->sockfd, name, 32, 0);
-			cli->cli2 = op.client_for_single_chat(name);
-			cout << "Private room members: " << cli->cli2->name << endl;
-			if (cli->cli2 == nullptr)
-			{
-				write(cli->sockfd, "0", 1);
-				leave_flag = 1;
-			}
-			else
-			{
-				write(cli->sockfd, "1", 1);
-			}
-		}
-		else if (strcmp("2", buff_out) == 0)
-		{
-			cli->chatroom_status = true;
-			sprintf(buff_out, "\n\x1B[36m%s has joined\033[0m\n", cli->name);
-			cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
-			op.send_message_to_all(buff_out, cli->uid);
-		}
+		cli->chatroom_status = true;
+		sprintf(buff_out, "\n\x1B[36m%s has joined\033[0m\n", cli->name);
+		cout << "\x1B[36m" << buff_out << "\033[0m" << endl;
+		op.send_message_to_all(buff_out, cli->uid);
 	}
 }
 
-void ServerOperations::login_client(client_t *cli)
+bool ServerOperations::login_client(client_t *cli)
 {
 	cout << "\033[;33mLogin is in process...   \033[0m\n";
 
@@ -142,25 +157,38 @@ void ServerOperations::login_client(client_t *cli)
 		(recv(cli->sockfd, password, 32, 0) <= 0 || strlen(password) < 2 || strlen(password) >= 32 - 1))
 	{
 		cout << "\033[;31mDidnt enter the name or password \033[0m\n";
-		leave_flag = 1;
+		return false;
 	}
 	else
 	{
 		 if (db.authenticate(name, password))
 		 {
 		 	cout << "\033[;32mAuthentication Successful  \033[0m\n";
-			op.authentication(name, password, cli);
-		 }
+			//op.authentication(name, password, cli);
+			strcpy(cli->name, name);
+			if (op.check_exist(cli))
+			{
+				write(cli->sockfd, "0", strlen("0"));
+				login_client(cli);
+				return false;
+			}
+			else
+			{
+				write(cli->sockfd, "1", strlen("1"));
+				chat_mode_selection(cli);
+				return true;
+			}
+			
+		}
 		else
 		{
 			cout << "\033[;31mNo Client Exists!!!   \033[0m\n";
 			write(cli->sockfd, "2", strlen("2"));
-			leave_flag = 1;
+			return false;
 		}
 	}
 
 	bzero(buff_out, BUFFER_SZ);
-	op.message_handling(cli);
 }
 
 void ServerOperations::select_receivers(client_t *cli, char *buff_out)
@@ -180,7 +208,7 @@ void ServerOperations::select_receivers(client_t *cli, char *buff_out)
 	str_trim_lf(buffer, strlen(buffer));
 }
 
-void ServerOperations::message_handling(client_t *cli)
+void ServerOperations::message_handling(client_t *cli, int leave_flag)
 {
 	while (1)
 	{
@@ -235,12 +263,21 @@ void* handle_client(void *arg)
 
 	if (strcmp(option, "1") == 0)
 	{
-		op.register_client(cli->sockfd);
+		bool flag = false;
+		while(!flag)
+		{
+			flag = op.register_client(cli->sockfd);
+		}
 	}
 
 	else if (strcmp(option, "2") == 0)
 	{
-		op.login_client(cli);
+		bool flag = false;
+		while(!flag)
+		{
+			flag = op.login_client(cli);
+		}
+		op.message_handling(cli, leave_flag);
 	}
 
 	/* Delete client from array and yield thread */

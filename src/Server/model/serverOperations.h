@@ -17,15 +17,17 @@ class ServerOperations
 	char buffer[LENGTH_MSG + 32] = {};
 	int leave_flag = 0;
 	client_t *cli2 = nullptr;
+    int i = 0;
 
     void send_message_to_all(char *, int);
     void send_message_to_one(char *, client_t *);
     bool check_exist(client_t *);
-    void register_client(int);
+    bool register_client(int);
     client_t *client_for_single_chat(char *);
-    void login_client(client_t *);
-    void authentication(char *, char *, client_t *);
-    void message_handling(client_t *);
+    bool login_client(client_t *);
+   // bool authentication(char *, char *, client_t *);
+    void message_handling(client_t *, int);
     void select_receivers(client_t *, char *);
-
+    void get_online_clients(client_t *);
+    void chat_mode_selection(client_t *);
 };
