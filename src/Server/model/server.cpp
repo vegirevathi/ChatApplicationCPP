@@ -59,25 +59,28 @@ bool ServerOperations::check_exist(client_t *cli)
 					cout << "\033[;32m Client is present  \033[0m\n\n";
 					return true;
 				}
-			
+
 	return false;
 }
 
 void ServerOperations::get_online_clients(client_t *cli)
 {
 	char buff[100] = {};
-	char buffer[100] = {};
+	char secbuffer[100];
 	cout << "Came here" << endl;
 	for (int i = 0; i < MAX_CLIENTS; ++i)
-
-		if (clients[i]->name != cli->name)
-		{
-			strcat(buff, clients[i]->name);
-			strcat(buff, "\n");
-		}
-	sprintf(buffer, "\033[;33m%s\033[0m", buff);
-	cout << buffer << endl;
-	write(cli->sockfd, buffer, strlen(buffer));
+	{
+		if (clients[i] != nullptr)
+			if (clients[i]->name != cli->name)
+			{
+				strcat(buff, clients[i]->name);
+				strcat(buff, "\n");
+			}
+	}
+	cout << "yup" << endl;
+	sprintf(secbuffer, "\033[;33m%s\033[0m", buff);
+	cout << secbuffer << endl;
+	write(cli->sockfd, secbuffer, strlen(secbuffer));
 }
 
 bool ServerOperations::register_client(int sockfd)
@@ -109,7 +112,7 @@ bool ServerOperations::register_client(int sockfd)
 	}
 }
 
-client_t* ServerOperations::client_for_single_chat(char *name)
+client_t *ServerOperations::client_for_single_chat(char *name)
 {
 	for (int i = 0; i < MAX_CLIENTS; i++)
 		if (clients[i])
@@ -124,6 +127,7 @@ void ServerOperations::chat_mode_selection(client_t *cli)
 	char name[32];
 	char *buffer;
 	recv(cli->sockfd, buff_out, 1, 0);
+	cout << buff_out << " revc" << endl;
 	if (strcmp("1", buff_out) == 0)
 	{
 		get_online_clients(cli);
@@ -133,11 +137,13 @@ void ServerOperations::chat_mode_selection(client_t *cli)
 		cout << "Private room members: " << cli->cli2->name << endl;
 		if (cli->cli2 == nullptr)
 		{
-			write(cli->sockfd, "0", 1);		
+			write(cli->sockfd, "0", 1);
 		}
 		else
 		{
-			write(cli->sockfd, "1", 1);
+			// bzero(buffer, LENGTH_MSG + 32);
+			sprintf(buff_out, "1");
+			write(cli->sockfd, buff_out, strlen(buff_out));
 		}
 	}
 	else if (strcmp("2", buff_out) == 0)
@@ -161,9 +167,9 @@ bool ServerOperations::login_client(client_t *cli)
 	}
 	else
 	{
-		 if (db.authenticate(name, password))
-		 {
-		 	cout << "\033[;32mAuthentication Successful  \033[0m\n";
+		if (db.authenticate(name, password))
+		{
+			cout << "\033[;32mAuthentication Successful  \033[0m\n";
 			//op.authentication(name, password, cli);
 			strcpy(cli->name, name);
 			if (op.check_exist(cli))
@@ -178,7 +184,6 @@ bool ServerOperations::login_client(client_t *cli)
 				chat_mode_selection(cli);
 				return true;
 			}
-			
 		}
 		else
 		{
@@ -247,7 +252,7 @@ void ServerOperations::message_handling(client_t *cli, int leave_flag)
 }
 
 /* Handle all communication with the client */
-void* handle_client(void *arg)
+void *handle_client(void *arg)
 {
 	char buff_out[BUFFER_SZ];
 	char name[32];
@@ -264,7 +269,7 @@ void* handle_client(void *arg)
 	if (strcmp(option, "1") == 0)
 	{
 		bool flag = false;
-		while(!flag)
+		while (!flag)
 		{
 			flag = op.register_client(cli->sockfd);
 		}
@@ -273,7 +278,7 @@ void* handle_client(void *arg)
 	else if (strcmp(option, "2") == 0)
 	{
 		bool flag = false;
-		while(!flag)
+		while (!flag)
 		{
 			flag = op.login_client(cli);
 		}

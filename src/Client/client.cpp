@@ -117,7 +117,7 @@ int Client::messageHandler(int sockfd)
 void Client::chatSelection(int sockfd)
 {
     system("clear");
-    char msg[100];
+    char msg[100] = {};
     cout << "\033[1;35m  CHAT OPTIONS  \033[0m\n\n";
     cout << "\033[;34mEnter 1 to single chat \033[0m\n";
     cout << "\033[;34mEnter 2 to pool chat \033[0m\n";
@@ -132,16 +132,17 @@ void Client::chatSelection(int sockfd)
         system("clear");
         send(sockfd, "1", 1, 0);
 
-        recv(sockfd, buffer, strlen(buffer), 0);
-        cout << "Online Clients: \n"<< buffer << endl;
+        // recv(sockfd, buffer, strlen(buffer), 0);
+        // cout << "Online Clients: \n"<< buffer << endl;
 
         cout << "\033[;34mEnter name of the person you want to chat \033[0m\n";
         cin >> name;
 
         send(sockfd, name, 32, 0);
-        recv(sockfd, msg, strlen(msg), 0);
+        recv(sockfd, msg, 1, 0);
+        cout << msg << " recv" << endl;
 
-        if (strcmp(msg, "1m") == 0)
+        if (strcmp(msg, "1") == 0)
         {
             system("clear");
             cout << "\033[1;34m WELCOME TO PRIVATE CHAT \033[0m\n";
